@@ -9,15 +9,13 @@ import abc
 import os
 import six
 import time
-import win32con
-import win32file
-import win32security
 
 from .base import Terminal
+from .win32_pipes import PipeReader, PipeWriter
 
-__all__ = (
+__all__ = [
     'Win32Terminal',
-)
+]
 
 
 class Win32Terminal(Terminal):
@@ -30,43 +28,30 @@ class Win32Terminal(Terminal):
         self._input_ready_callbacks = []
         self.loop = get_event_loop()
 
-        self.stdout_handle = win32file.CreateFile(
-            self.pty.conout_name(),
-            win32con.GENERIC_READ,
-            0,
-            win32security.SECURITY_ATTRIBUTES(),
-            win32con.OPEN_EXISTING,
-            win32con.FILE_FLAG_OVERLAPPED,
-            0)
+        # Open input/output pipes.
+        def received_data(data):
+            self._buffer.append(data)
+            for cb in self._input_ready_callbacks:
+                cb()
 
-        self.stdin_handle = win32file.CreateFile(
-            self.pty.conin_name(),
-            win32con.GENERIC_WRITE,
-            0,
-            win32security.SECURITY_ATTRIBUTES(),
-            win32con.OPEN_EXISTING,
-            win32con.FILE_FLAG_OVERLAPPED,
-            0)
+        self.stdout_pipe_reader = PipeReader(
+            self.pty.conout_name(),
+            read_callback=received_data,
+            done_callback=lambda: self.ready_f.set_result(None))
+
+        self.stdin_pipe_writer = PipeWriter(
+            self.pty.conin_name())
+
+        # Buffer in which we read + reading flag.
         self._buffer = []
 
     def add_input_ready_callback(self, callback):
         """
         Add a new callback to be called for when there's input ready to read.
         """
-        def poll():
-            while True:
-                try:
-                    status, from_pipe = win32file.ReadFile(self.stdout_handle, 65536)
-                except Exception:
-                    # The pipe has ended.
-                    self.ready_f.set_result(None)
-                    return
-
-                result = from_pipe.decode('utf-8', 'ignore')
-                self._buffer.append(result)
-                self.loop.call_from_executor(callback)
-
-        self.loop.run_in_executor(poll, _daemon=True)
+        self._input_ready_callbacks.append(callback)
+        if self._buffer:
+            callback()
 
     def read_text(self, amount):
         " Read terminal output and return it. "
@@ -76,24 +61,19 @@ class Win32Terminal(Terminal):
 
     def write_text(self, text):
         " Write text to the stdin of the process. "
-        win32file.WriteFile(self.stdin_handle, text.encode('utf-8'))
+        self.stdin_pipe_writer.write(text)
 
     def connect_reader(self):
         """
         Connect the reader to the event loop.
         """
-        return
-        #def ready():
-        #    for cb in self._input_ready_callbacks:
-        #        cb()
-        #self.loop.add_win32_handle(self.stdout_handle.handle, ready)
+        self.stdout_pipe_reader.start_reading()
 
     def disconnect_reader(self):
         """
         Connect the reader to the event loop.
         """
-        return
-        #self.loop.remove_win32_handle(self.stdout_handle.handle)
+        self.stdout_pipe_reader.stop_reading()
 
     @property
     def closed(self):

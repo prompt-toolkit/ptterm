@@ -12,7 +12,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout.containers import Window, HSplit, VSplit, ConditionalContainer
 from prompt_toolkit.layout.controls import UIControl, UIContent, BufferControl
-from prompt_toolkit.layout.processors import Processor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, merge_processors, Transformation
+from prompt_toolkit.layout.processors import Processor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, Transformation
 from prompt_toolkit.layout.screen import Point
 from prompt_toolkit.widgets.toolbars import SearchToolbar
 from prompt_toolkit.mouse_events import MouseEventType

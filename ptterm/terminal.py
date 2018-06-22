@@ -10,8 +10,8 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.filters import Condition, has_selection
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.layout.containers import Window, HSplit, VSplit, ConditionalContainer
-from prompt_toolkit.layout.controls import UIControl, UIContent, BufferControl
+from prompt_toolkit.layout.containers import Window, HSplit, VSplit, ConditionalContainer, FloatContainer, Float
+from prompt_toolkit.layout.controls import UIControl, UIContent, BufferControl, FormattedTextControl
 from prompt_toolkit.layout.processors import Processor, HighlightSearchProcessor, HighlightIncrementalSearchProcessor, Transformation, HighlightSelectionProcessor
 from prompt_toolkit.layout.screen import Point
 from prompt_toolkit.widgets.toolbars import SearchToolbar
@@ -24,12 +24,11 @@ from six.moves import range
 from .process import Process
 
 __all__ = (
-    'TerminalControl',
     'Terminal',
 )
 
 
-class TerminalControl(UIControl):
+class _TerminalControl(UIControl):
     def __init__(self, command=['/bin/bash'], done_callback=None,
                  before_exec_func=None, bell_func=None):
         assert isinstance(command, list)
@@ -217,11 +216,14 @@ class _Window(Window):
 
 
 class Terminal(object):
+    """
+    Terminal widget for use in a prompt_toolkit layout.
+    """
     def __init__(self, command=['/bin/bash'], before_exec_func=None,
                  bell_func=None, style='', width=None, height=None,
                  done_callback=None):
 
-        self.terminal_control = TerminalControl(
+        self.terminal_control = _TerminalControl(
             command=command, before_exec_func=before_exec_func,
             bell_func=bell_func, done_callback=done_callback)
 
@@ -257,7 +259,7 @@ class Terminal(object):
             search_buffer_control=self.search_toolbar.control,
             include_default_input_processors=False,
             input_processors=[
-                _UseStyledTextrocessor(self),
+                _UseStyledTextProcessor(self),
                 HighlightSelectionProcessor(),
                 HighlightSearchProcessor(),
                 HighlightIncrementalSearchProcessor(),
@@ -274,16 +276,37 @@ class Terminal(object):
         def is_copying():
             return self.is_copying
 
-        self.container = HSplit([
-            # Either show terminal window or copy buffer.
-            VSplit([  # XXX: this nested VSplit should not have been necessary,
-                        # but the ConditionalContainer which width can become
-                        # zero will collapse the other elements.
-                ConditionalContainer(self.terminal_window, filter=~is_copying),
-                ConditionalContainer(self.copy_window, filter=is_copying),
-            ]),
-            ConditionalContainer(self.search_toolbar, filter=is_copying),
-        ], style=style, width=width, height=height)
+        self.container = FloatContainer(
+            content=HSplit([
+                # Either show terminal window or copy buffer.
+                VSplit([  # XXX: this nested VSplit should not have been necessary,
+                            # but the ConditionalContainer which width can become
+                            # zero will collapse the other elements.
+                    ConditionalContainer(self.terminal_window, filter=~is_copying),
+                    ConditionalContainer(self.copy_window, filter=is_copying),
+                ]),
+                ConditionalContainer(self.search_toolbar, filter=is_copying),
+            ], style=style, width=width, height=height),
+            floats=[
+                Float(
+                    top=0, right=0, height=1,
+                    content=ConditionalContainer(
+                        Window(content=FormattedTextControl(
+                            text=self._copy_position_formatted_text),
+                            style='class:copy-mode-cursor-position'),
+                        filter=is_copying))
+            ]
+        )
+
+    def _copy_position_formatted_text(self):
+        """
+        Return the cursor position text to be displayed in copy mode.
+        """
+        render_info = self.copy_window.render_info
+        if render_info:
+            return '[%s/%s]' % (render_info.cursor_position.y + 1, render_info.content_height)
+        else:
+            return '[0/0]'
 
     def enter_copy_mode(self):
         # Suspend process.
@@ -338,7 +361,7 @@ class Terminal(object):
         return self.terminal_control.process
 
 
-class _UseStyledTextrocessor(Processor):
+class _UseStyledTextProcessor(Processor):
     """
     In order to allow highlighting of the copy region, we use a preprocessed
     list of (style, text) tuples. This processor returns just that list for the

@@ -197,8 +197,20 @@ class PosixTerminal(Terminal):
         self.loop.run_in_executor(wait_for_finished)
 
     def get_name(self):
+        " Return the process name. "
+        result = '<unknown>'
+
+        # Apparently, on a Linux system (like my Fedora box), I have to call
+        # `tcgetpgrp` on the `master` fd. However, on te Window subsystem for
+        # Linux, we have to use the `slave` fd.
+
         if self.master is not None:
-            return get_name_for_fd(self.master)
+            result = get_name_for_fd(self.master)
+
+        if not result and self.slave is not None:
+            result = get_name_for_fd(self.slave)
+
+        return result
 
     def get_cwd(self):
         if self.pid:

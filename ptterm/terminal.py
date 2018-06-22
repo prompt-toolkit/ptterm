@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 from prompt_toolkit.application.current import get_app, NoRunningApplicationError
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
-from prompt_toolkit.filters import Condition
+from prompt_toolkit.filters import Condition, has_selection
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout.containers import Window, HSplit, VSplit, ConditionalContainer
@@ -235,6 +235,17 @@ class Terminal(object):
         @kb.add('c-c')
         def _(event):
             self.exit_copy_mode()
+
+        @kb.add('space')
+        def _(event):
+            " Reset selection. "
+            event.current_buffer.start_selection()
+
+        @kb.add('enter', filter=has_selection)
+        def _(event):
+            " Reset selection. "
+            data = event.current_buffer.copy_selection()
+            event.app.clipboard.set_data(data)
 
         self.search_toolbar = SearchToolbar(
             forward_search_prompt='Search down: ',

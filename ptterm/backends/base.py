@@ -19,7 +19,7 @@ class Terminal(object):
         """
 
     @abc.abstractmethod
-    def close(self):
+    def kill(self):
         """
         Terminate the sub process.
         """

@@ -65,8 +65,6 @@ class Process(object):
         self.done_callback = done_callback
         self.has_priority = has_priority or (lambda: True)
 
-        self.pid = None
-        self.is_terminated = False
         self.suspended = False
         self._reader_connected = False
 
@@ -209,15 +207,15 @@ class Process(object):
         # TODO: Maybe cache for short time.
         return self.terminal.get_name()
 
-    def send_signal(self, signal):
-        " Send signal to running process. "
-        assert isinstance(signal, int), type(signal)
+    def kill(self):
+        """
+        Kill process.
+        """
+        self.terminal.kill()
 
-        if self.pid and not self.is_terminated:
-            try:
-                os.kill(self.pid, signal)
-            except OSError:
-                pass  # [Errno 3] No such process.
+    @property
+    def is_terminated(self):
+        return self.terminal.closed
 
     def create_copy_document(self):
         """

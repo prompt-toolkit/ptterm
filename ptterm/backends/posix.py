@@ -123,9 +123,19 @@ class PosixTerminal(Terminal):
             # Wait for the process to finish.
             self._waitpid()
 
-    def close(self):
-        # TODO: os.kill
-        pass
+    def kill(self):
+        " Terminate process. "
+        self.send_signal(signal.SIGKILL)
+
+    def send_signal(self, signal):
+        " Send signal to running process. "
+        assert isinstance(signal, int), type(signal)
+
+        if self.pid and not self.closed:
+            try:
+                os.kill(self.pid, signal)
+            except OSError:
+                pass  # [Errno 3] No such process.
 
     def _in_child(self):
         " Will be executed in the forked child. "
@@ -190,8 +200,6 @@ class PosixTerminal(Terminal):
             self.master = None
 
             # Callback.
-            self.is_terminated = True
-
             self.ready_f.set_result(None)
 
         self.loop.run_in_executor(wait_for_finished)

@@ -91,8 +91,9 @@ class Win32Terminal(Terminal):
             SpawnConfig.flag.auto_shutdown,
             cmdline=r'C:\windows\system32\cmd.exe'))
 
-    def close(self):
-        self.process.close()
+    def kill(self):
+        " Terminate the process. "
+        self.pty.close()
 
     def get_name(self):
         """

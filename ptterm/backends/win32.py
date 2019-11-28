@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from prompt_toolkit.eventloop import get_event_loop
 from prompt_toolkit.eventloop.future import Future
 
@@ -7,7 +5,6 @@ from yawinpty import Pty, SpawnConfig
 
 import abc
 import os
-import six
 import time
 
 from .base import Terminal

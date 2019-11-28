@@ -1,7 +1,6 @@
 """
 Improvements on Pyte.
 """
-from __future__ import unicode_literals
 from pyte.streams import Stream
 from pyte.escape import NEL
 

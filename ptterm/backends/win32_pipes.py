@@ -2,7 +2,6 @@
 Abstractions on top of Win32 pipes for integration in the prompt_toolkit event
 loop.
 """
-from __future__ import unicode_literals
 from ctypes import c_int, c_long, c_ulong, c_void_p, byref, c_char_p, Structure, Union, py_object, POINTER, pointer
 from ctypes import windll
 from ctypes.wintypes import HANDLE, ULONG, DWORD, BOOL

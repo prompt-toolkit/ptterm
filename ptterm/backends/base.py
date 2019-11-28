@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
 import abc
-import six
 
 
 __all__ = (
@@ -8,8 +6,7 @@ __all__ = (
 )
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Terminal(object):
+class Terminal(metaclass=abc.ABCMeta):
     """
     Base class for the terminal backend-interface.
     """

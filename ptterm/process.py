@@ -1,13 +1,11 @@
 """
 The child process.
 """
-from __future__ import unicode_literals
+from asyncio import get_event_loop
 
+from prompt_toolkit.eventloop import call_soon_threadsafe
 from prompt_toolkit.document import Document
-from prompt_toolkit.eventloop import get_event_loop
 from prompt_toolkit.utils import is_windows
-from six.moves import range
-from six import text_type
 
 from .key_mappings import prompt_toolkit_key_to_vt100_key
 from .screen import BetterScreen
@@ -138,7 +136,7 @@ class Process(object):
         Read callback, called by the loop.
         """
         d = self.terminal.read_text(4096)
-        assert isinstance(d, text_type), 'got %r' % type(d)
+        assert isinstance(d, str), 'got %r' % type(d)
                 # Make sure not to read too much at once. (Otherwise, this
                 # could block the event loop.)
 
@@ -171,8 +169,7 @@ class Process(object):
                 # unresponsive.
                 timestamp = time.time() + 1
 
-                self.loop.call_from_executor(
-                    do_asap, _max_postpone_until=timestamp)
+                call_soon_threadsafe(do_asap, max_postpone_time=timestamp)
         else:
             # End of stream. Remove child.
             self.terminal.disconnect_reader()

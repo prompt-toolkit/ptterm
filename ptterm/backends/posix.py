@@ -1,6 +1,5 @@
-from __future__ import unicode_literals
 from prompt_toolkit.input.posix_utils import PosixStdinReader
-from prompt_toolkit.eventloop import Future, get_event_loop
+from asyncio import Future, get_event_loop
 from .base import Terminal
 from .posix_utils import set_terminal_size, pty_make_controlling_tty
 import os
@@ -187,7 +186,7 @@ class PosixTerminal(Terminal):
         def wait_for_finished():
             " Wait for PID in executor. "
             os.waitpid(self.pid, 0)
-            self.loop.call_from_executor(done)
+            self.loop.call_soon(done)
 
         def done():
             " PID received. Back in the main thread. "
@@ -202,7 +201,7 @@ class PosixTerminal(Terminal):
             # Callback.
             self.ready_f.set_result(None)
 
-        self.loop.run_in_executor(wait_for_finished)
+        self.loop.run_in_executor(None, wait_for_finished)
 
     def get_name(self):
         " Return the process name. "

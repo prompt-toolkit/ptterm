@@ -1,10 +1,7 @@
 """
 Tools for Darwin. (Mac OS X.)
 """
-from __future__ import unicode_literals
 from ctypes import cdll, pointer, c_uint, c_ubyte, c_ulong
-
-import six
 
 __all__ = [
     'get_proc_info',
@@ -87,7 +84,7 @@ def get_proc_name(pid):
         return
 
     p_comm_range = proc_kinfo[P_COMM_OFFSET:P_COMM_OFFSET + MAXCOMLEN + 1]
-    p_comm_raw = ''.join(six.unichr(c) for c in p_comm_range)
+    p_comm_raw = ''.join(chr(c) for c in p_comm_range)
     p_comm = p_comm_raw.split('\0', 1)[0]
 
     return p_comm

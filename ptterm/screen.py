@@ -7,13 +7,11 @@ Changes compared to the original `Screen` class:
     - 256 colour and true color support.
     - CPR support and device attributes.
 """
-from __future__ import unicode_literals
 from collections import defaultdict
 
 from pyte import charsets as cs
 from pyte import modes as mo
 from pyte.screens import Margins
-from six.moves import range
 
 from prompt_toolkit.cache import FastDictCache
 from prompt_toolkit.layout.screen import Screen, Char

@@ -1,7 +1,6 @@
 """
 Some utilities.
 """
-from __future__ import unicode_literals
 import array
 import fcntl
 import os

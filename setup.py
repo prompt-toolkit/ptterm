@@ -8,9 +8,8 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
     long_description = f.read()
 
 requirements = [
-    'prompt_toolkit>=2.0.0,<2.1.0',
+    'prompt_toolkit>=3.0.0,<3.1.0',
     'pyte>=0.5.1',
-    'six>=1.9.0',
 ]
 
 # Install yawinpty on Windows only.

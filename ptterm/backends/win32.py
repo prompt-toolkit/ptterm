@@ -1,7 +1,3 @@
-import abc
-import os
-import time
-
 from prompt_toolkit.eventloop import get_event_loop
 from prompt_toolkit.eventloop.future import Future
 from yawinpty import Pty, SpawnConfig

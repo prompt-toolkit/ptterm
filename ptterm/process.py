@@ -1,7 +1,6 @@
 """
 The child process.
 """
-import os
 import time
 from asyncio import get_event_loop
 

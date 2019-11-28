@@ -65,7 +65,7 @@ class OVERLAPPED(Structure):
     _anonymous_ = ("u",)
 
 
-class PipeReader(object):
+class PipeReader:
     """
     Asynchronous reader for win32 pipes.
     """
@@ -167,7 +167,7 @@ class PipeReader(object):
         self._reading.clear()
 
 
-class PipeWriter(object):
+class PipeWriter:
     """
     Wrapper around a win32 pipe.
     """

@@ -236,7 +236,7 @@ class _Window(Window):
         super(_Window, self).write_to_screen(*a, **kw)
 
 
-class Terminal(object):
+class Terminal:
     """
     Terminal widget for use in a prompt_toolkit layout.
     """

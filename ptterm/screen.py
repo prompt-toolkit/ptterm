@@ -21,7 +21,7 @@ from pyte.screens import Margins
 __all__ = ("BetterScreen",)
 
 
-class CursorPosition(object):
+class CursorPosition:
     " Mutable CursorPosition. "
 
     def __init__(self, x=0, y=0):
@@ -66,7 +66,7 @@ _Savepoint = namedtuple(
 )
 
 
-class BetterScreen(object):
+class BetterScreen:
     """
     Custom screen class. Most of the methods are called from a vt100 Pyte
     stream.

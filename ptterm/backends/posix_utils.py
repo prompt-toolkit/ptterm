@@ -87,7 +87,7 @@ def set_terminal_size(stdout_fileno, rows, cols):
     fcntl.ioctl(stdout_fileno, termios.TIOCSWINSZ, buf)
 
 
-class nonblocking(object):
+class nonblocking:
     """
     Make fd non blocking.
     """

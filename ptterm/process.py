@@ -27,7 +27,7 @@ def create_terminal(command, before_exec_func):
         return PosixTerminal.from_command(command, before_exec_func=before_exec_func)
 
 
-class Process(object):
+class Process:
     """
     Child process.
     Functionality for parsing the vt100 output (the Pyte screen and stream), as

@@ -7,9 +7,9 @@ import os
 import termios
 
 __all__ = (
-    'pty_make_controlling_tty',
-    'set_terminal_size',
-    'nonblocking',
+    "pty_make_controlling_tty",
+    "set_terminal_size",
+    "nonblocking",
 )
 
 
@@ -42,8 +42,10 @@ def pty_make_controlling_tty(tty_fd):
         fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
         if fd >= 0:
             os.close(fd)
-            raise Exception('Failed to disconnect from controlling '
-                            'tty. It is still possible to open /dev/tty.')
+            raise Exception(
+                "Failed to disconnect from controlling "
+                "tty. It is still possible to open /dev/tty."
+            )
     # which exception, shouldnt' we catch explicitly .. ?
     except:
         # Good! We are disconnected from a controlling tty.
@@ -57,7 +59,7 @@ def pty_make_controlling_tty(tty_fd):
         os.close(fd)
 
     # Verify we now have a controlling tty.
-    if os.name != 'posix':
+    if os.name != "posix":
         # Skip this on BSD-like systems since it will break.
         fd = os.open("/dev/tty", os.O_WRONLY)
         if fd < 0:
@@ -79,7 +81,7 @@ def set_terminal_size(stdout_fileno, rows, cols):
     # Buffer for the C call
     # (The first parameter of 'array.array' needs to be 'str' on both Python 2
     # and Python 3.)
-    buf = array.array(str('h'), [rows, cols, 0, 0])
+    buf = array.array(str("h"), [rows, cols, 0, 0])
 
     # Do: TIOCSWINSZ (Set)
     fcntl.ioctl(stdout_fileno, termios.TIOCSWINSZ, buf)
@@ -89,6 +91,7 @@ class nonblocking(object):
     """
     Make fd non blocking.
     """
+
     def __init__(self, fd):
         self.fd = fd
 
@@ -98,4 +101,3 @@ class nonblocking(object):
 
     def __exit__(self, *args):
         fcntl.fcntl(self.fd, fcntl.F_SETFL, self.orig_fl)
-

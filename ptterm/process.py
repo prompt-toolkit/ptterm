@@ -1,29 +1,29 @@
 """
 The child process.
 """
+import os
+import time
 from asyncio import get_event_loop
 
-from prompt_toolkit.eventloop import call_soon_threadsafe
 from prompt_toolkit.document import Document
+from prompt_toolkit.eventloop import call_soon_threadsafe
 from prompt_toolkit.utils import is_windows
 
 from .key_mappings import prompt_toolkit_key_to_vt100_key
 from .screen import BetterScreen
 from .stream import BetterStream
 
-import os
-import time
+__all__ = ("Process",)
 
-__all__ = (
-    'Process',
-)
 
 def create_terminal(command, before_exec_func):
     if is_windows():
         from .backends.win32 import Win32Terminal
+
         return Win32Terminal()
     else:
         from .backends.posix import PosixTerminal
+
         return PosixTerminal.from_command(command, before_exec_func=before_exec_func)
 
 
@@ -51,8 +51,16 @@ class Process(object):
         get priority in the event loop. (When this pane has the focus.)
         Otherwise output can be delayed.
     """
-    def __init__(self, invalidate, command=None, before_exec_func=None,
-                 bell_func=None, done_callback=None, has_priority=None):
+
+    def __init__(
+        self,
+        invalidate,
+        command=None,
+        before_exec_func=None,
+        bell_func=None,
+        done_callback=None,
+        has_priority=None,
+    ):
         assert callable(invalidate)
         assert bell_func is None or callable(bell_func)
         assert done_callback is None or callable(done_callback)
@@ -77,9 +85,9 @@ class Process(object):
         self.sx = 0
         self.sy = 0
 
-        self.screen = BetterScreen(self.sx, self.sy,
-                                   write_process_input=self.write_input,
-                                   bell_func=bell_func)
+        self.screen = BetterScreen(
+            self.sx, self.sy, write_process_input=self.write_input, bell_func=bell_func
+        )
 
         self.stream = BetterStream(self.screen)
         self.stream.attach(self.screen)
@@ -119,7 +127,7 @@ class Process(object):
         """
         # send as bracketed paste?
         if paste and self.screen.bracketed_paste_enabled:
-            data = '\x1b[200~' + data + '\x1b[201~'
+            data = "\x1b[200~" + data + "\x1b[201~"
 
         self.terminal.write_text(data)
 
@@ -128,7 +136,8 @@ class Process(object):
         Write prompt_toolkit Key.
         """
         data = prompt_toolkit_key_to_vt100_key(
-            key, application_mode=self.screen.in_application_mode)
+            key, application_mode=self.screen.in_application_mode
+        )
         self.write_input(data)
 
     def _read(self):
@@ -136,11 +145,12 @@ class Process(object):
         Read callback, called by the loop.
         """
         d = self.terminal.read_text(4096)
-        assert isinstance(d, str), 'got %r' % type(d)
-                # Make sure not to read too much at once. (Otherwise, this
-                # could block the event loop.)
+        assert isinstance(d, str), "got %r" % type(d)
+        # Make sure not to read too much at once. (Otherwise, this
+        # could block the event loop.)
 
         if not self.terminal.closed:
+
             def process():
                 self.stream.feed(d)
                 self.invalidate()
@@ -242,8 +252,11 @@ class Process(object):
             # Remove trailing whitespace. (If the background is transparent.)
             row_data = [row[x] for x in range(0, max_column + 1)]
 
-            while (row_data and row_data[-1].char.isspace() and
-                   token_has_no_background(row_data[-1].token)):
+            while (
+                row_data
+                and row_data[-1].char.isspace()
+                and token_has_no_background(row_data[-1].token)
+            ):
                 row_data.pop()
 
             # Walk through row.
@@ -262,7 +275,7 @@ class Process(object):
                         pass
 
             token_lists.append(token_list)
-            text.append('\n')
+            text.append("\n")
 
         def get_tokens_for_line(lineno):
             try:
@@ -271,9 +284,15 @@ class Process(object):
                 return []
 
         # Calculate cursor position.
-        d = Document(text=''.join(text))
+        d = Document(text="".join(text))
 
-        return Document(text=d.text,
-                        cursor_position=d.translate_row_col_to_index(
-                            row=self.screen.pt_screen.cursor_position.y,
-                            col=self.screen.pt_screen.cursor_position.x)), get_tokens_for_line
+        return (
+            Document(
+                text=d.text,
+                cursor_position=d.translate_row_col_to_index(
+                    row=self.screen.pt_screen.cursor_position.y,
+                    col=self.screen.pt_screen.cursor_position.x,
+                ),
+            ),
+            get_tokens_for_line,
+        )

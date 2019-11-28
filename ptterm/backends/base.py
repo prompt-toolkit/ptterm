@@ -1,15 +1,13 @@
 import abc
 
-
-__all__ = (
-    'Terminal',
-)
+__all__ = ("Terminal",)
 
 
 class Terminal(metaclass=abc.ABCMeta):
     """
     Base class for the terminal backend-interface.
     """
+
     def add_input_ready_callback(self, callback):
         """
         Add a new callback to be called for when there's input ready to read.
@@ -67,7 +65,7 @@ class Terminal(metaclass=abc.ABCMeta):
     def get_name(self):
         """
         Return the name for this process, or `None` when unknown.
-        """ 
+        """
 
     @abc.abstractmethod
     def get_cwd(self):

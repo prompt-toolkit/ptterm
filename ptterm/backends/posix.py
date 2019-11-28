@@ -1,17 +1,17 @@
-from prompt_toolkit.input.posix_utils import PosixStdinReader
-from asyncio import Future, get_event_loop
-from .base import Terminal
-from .posix_utils import set_terminal_size, pty_make_controlling_tty
 import os
-import sys
-import signal
-import time
 import resource
+import signal
+import sys
+import time
 import traceback
+from asyncio import Future, get_event_loop
 
-__all__ = (
-    'PosixTerminal',
-)
+from prompt_toolkit.input.posix_utils import PosixStdinReader
+
+from .base import Terminal
+from .posix_utils import pty_make_controlling_tty, set_terminal_size
+
+__all__ = ("PosixTerminal",)
 
 
 class PosixTerminal(Terminal):
@@ -22,7 +22,7 @@ class PosixTerminal(Terminal):
         self.master, self.slave = os.openpty()
 
         # Master side -> attached to terminal emulator.
-        self._reader = PosixStdinReader(self.master, errors='replace')
+        self._reader = PosixStdinReader(self.master, errors="replace")
         self._reader_connected = False
         self._input_ready_callbacks = []
 
@@ -49,7 +49,7 @@ class PosixTerminal(Terminal):
             if before_exec_func:
                 before_exec_func()
 
-            for p in os.environ['PATH'].split(':'):
+            for p in os.environ["PATH"].split(":"):
                 path = os.path.join(p, command[0])
                 if os.path.exists(path) and os.access(path, os.X_OK):
                     os.execv(path, command)
@@ -58,6 +58,7 @@ class PosixTerminal(Terminal):
 
     def connect_reader(self):
         if self.master is not None and not self._reader_connected:
+
             def ready():
                 for cb in self._input_ready_callbacks:
                     cb()
@@ -78,7 +79,7 @@ class PosixTerminal(Terminal):
         return self._reader.read(amount)
 
     def write_text(self, text):
-        self.write_bytes(text.encode('utf-8'))
+        self.write_bytes(text.encode("utf-8"))
 
     def write_bytes(self, data):
         while self.master is not None:
@@ -183,6 +184,7 @@ class PosixTerminal(Terminal):
         """
         Create an executor that waits and handles process termination.
         """
+
         def wait_for_finished():
             " Wait for PID in executor. "
             os.waitpid(self.pid, 0)
@@ -205,7 +207,7 @@ class PosixTerminal(Terminal):
 
     def get_name(self):
         " Return the process name. "
-        result = '<unknown>'
+        result = "<unknown>"
 
         # Apparently, on a Linux system (like my Fedora box), I have to call
         # `tcgetpgrp` on the `master` fd. However, on te Window subsystem for
@@ -224,8 +226,8 @@ class PosixTerminal(Terminal):
             return get_cwd_for_pid(self.pid)
 
 
+if sys.platform in ("linux", "linux2", "cygwin"):
 
-if sys.platform in ('linux', 'linux2', 'cygwin'):
     def get_name_for_fd(fd):
         """
         Return the process name for a given process ID.
@@ -240,11 +242,13 @@ if sys.platform in ('linux', 'linux2', 'cygwin'):
             return
 
         try:
-            with open('/proc/%s/cmdline' % pgrp, 'rb') as f:
-                return f.read().decode('utf-8', 'ignore').partition('\0')[0]
+            with open("/proc/%s/cmdline" % pgrp, "rb") as f:
+                return f.read().decode("utf-8", "ignore").partition("\0")[0]
         except IOError:
             pass
-elif sys.platform == 'darwin':
+
+
+elif sys.platform == "darwin":
     from .darwin import get_proc_name
 
     def get_name_for_fd(fd):
@@ -262,7 +266,10 @@ elif sys.platform == 'darwin':
             return get_proc_name(pgrp)
         except IOError:
             pass
+
+
 else:
+
     def get_name_for_fd(fd):
         """
         Return the process name for a given process ID.
@@ -274,8 +281,8 @@ def get_cwd_for_pid(pid):
     """
     Return the current working directory for a given process ID.
     """
-    if sys.platform in ('linux', 'linux2', 'cygwin'):
+    if sys.platform in ("linux", "linux2", "cygwin"):
         try:
-            return os.readlink('/proc/%s/cwd' % pid)
+            return os.readlink("/proc/%s/cwd" % pid)
         except OSError:
             pass

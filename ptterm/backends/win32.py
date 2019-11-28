@@ -1,17 +1,16 @@
-from prompt_toolkit.eventloop import get_event_loop
-from prompt_toolkit.eventloop.future import Future
-
-from yawinpty import Pty, SpawnConfig
-
 import abc
 import os
 import time
+
+from prompt_toolkit.eventloop import get_event_loop
+from prompt_toolkit.eventloop.future import Future
+from yawinpty import Pty, SpawnConfig
 
 from .base import Terminal
 from .win32_pipes import PipeReader, PipeWriter
 
 __all__ = [
-    'Win32Terminal',
+    "Win32Terminal",
 ]
 
 
@@ -19,6 +18,7 @@ class Win32Terminal(Terminal):
     """
     Terminal backend for Windows, on top of winpty.
     """
+
     def __init__(self):
         self.pty = Pty()
         self.ready_f = Future()
@@ -34,10 +34,10 @@ class Win32Terminal(Terminal):
         self.stdout_pipe_reader = PipeReader(
             self.pty.conout_name(),
             read_callback=received_data,
-            done_callback=lambda: self.ready_f.set_result(None))
+            done_callback=lambda: self.ready_f.set_result(None),
+        )
 
-        self.stdin_pipe_writer = PipeWriter(
-            self.pty.conin_name())
+        self.stdin_pipe_writer = PipeWriter(self.pty.conin_name())
 
         # Buffer in which we read + reading flag.
         self._buffer = []
@@ -52,7 +52,7 @@ class Win32Terminal(Terminal):
 
     def read_text(self, amount):
         " Read terminal output and return it. "
-        result = ''.join(self._buffer)
+        result = "".join(self._buffer)
         self._buffer = []
         return result
 
@@ -84,9 +84,11 @@ class Win32Terminal(Terminal):
         """
         Start the terminal process.
         """
-        self.pty.spawn(SpawnConfig(
-            SpawnConfig.flag.auto_shutdown,
-            cmdline=r'C:\windows\system32\cmd.exe'))
+        self.pty.spawn(
+            SpawnConfig(
+                SpawnConfig.flag.auto_shutdown, cmdline=r"C:\windows\system32\cmd.exe"
+            )
+        )
 
     def kill(self):
         " Terminate the process. "
@@ -95,8 +97,8 @@ class Win32Terminal(Terminal):
     def get_name(self):
         """
         Return the name for this process, or `None` when unknown.
-        """ 
-        return 'cmd.exe'
+        """
+        return "cmd.exe"
 
     def get_cwd(self):
         return

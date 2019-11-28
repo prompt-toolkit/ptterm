@@ -9,13 +9,10 @@ def main():
         application.exit()
 
     application = Application(
-        layout=Layout(
-            container=Terminal(done_callback=done)
-        ),
-        full_screen=True,
+        layout=Layout(container=Terminal(done_callback=done)), full_screen=True,
     )
     application.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

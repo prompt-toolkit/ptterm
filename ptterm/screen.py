@@ -7,36 +7,36 @@ Changes compared to the original `Screen` class:
     - 256 colour and true color support.
     - CPR support and device attributes.
 """
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
+from prompt_toolkit.cache import FastDictCache
+from prompt_toolkit.layout.screen import Char, Screen
+from prompt_toolkit.output.vt100 import BG_ANSI_COLORS, FG_ANSI_COLORS
+from prompt_toolkit.output.vt100 import _256_colors as _256_colors_table
+from prompt_toolkit.styles import Attrs
 from pyte import charsets as cs
 from pyte import modes as mo
 from pyte.screens import Margins
 
-from prompt_toolkit.cache import FastDictCache
-from prompt_toolkit.layout.screen import Screen, Char
-from prompt_toolkit.styles import Attrs
-from prompt_toolkit.output.vt100 import FG_ANSI_COLORS, BG_ANSI_COLORS
-from prompt_toolkit.output.vt100 import _256_colors as _256_colors_table
-from collections import namedtuple
-
-__all__ = (
-    'BetterScreen',
-)
+__all__ = ("BetterScreen",)
 
 
 class CursorPosition(object):
     " Mutable CursorPosition. "
+
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
 
     def __repr__(self):
-        return 'pymux.CursorPosition(x=%r, y=%r)' % (self.x, self.y)
+        return "pymux.CursorPosition(x=%r, y=%r)" % (self.x, self.y)
+
 
 # Intern dictionary for interning unicode strings. This should save memory and
 # make our cache faster.
 _intern_dict = {}
+
+
 def unicode_intern(text):
     try:
         return _intern_dict[text]
@@ -50,17 +50,20 @@ _CHAR_CACHE = FastDictCache(Char, size=1000 * 1000)
 
 
 # Custom Savepoint that also stores the Attrs.
-_Savepoint = namedtuple("_Savepoint", [
-    'cursor_x',
-    'cursor_y',
-    'g0_charset',
-    'g1_charset',
-    'charset',
-    'origin',
-    'wrap',
-    'attrs',
-    'style_str',
-])
+_Savepoint = namedtuple(
+    "_Savepoint",
+    [
+        "cursor_x",
+        "cursor_y",
+        "g0_charset",
+        "g1_charset",
+        "charset",
+        "origin",
+        "wrap",
+        "attrs",
+        "style_str",
+    ],
+)
 
 
 class BetterScreen(object):
@@ -72,20 +75,27 @@ class BetterScreen(object):
     class, because this way, we can send it to the renderer without any
     transformation.
     """
+
     swap_variables = [
-        'mode',
-        'margins',
-        'charset',
-        'g0_charset',
-        'g1_charset',
-        'tabstops',
-        'data_buffer',
-        'pt_cursor_position',
-        'max_y',
+        "mode",
+        "margins",
+        "charset",
+        "g0_charset",
+        "g1_charset",
+        "tabstops",
+        "data_buffer",
+        "pt_cursor_position",
+        "max_y",
     ]
 
-    def __init__(self, lines, columns, write_process_input, bell_func=None,
-                 get_history_limit=None):
+    def __init__(
+        self,
+        lines,
+        columns,
+        write_process_input,
+        bell_func=None,
+        get_history_limit=None,
+    ):
         assert isinstance(lines, int)
         assert isinstance(columns, int)
         assert callable(write_process_input)
@@ -155,14 +165,16 @@ class BetterScreen(object):
         """
         self._reset_screen()
 
-        self.title = ''
-        self.icon_name = ''
+        self.title = ""
+        self.icon_name = ""
 
         # Reset modes.
-        self.mode = set([
-            mo.DECAWM,  # Autowrap mode. (default: disabled).
-            mo.DECTCEM  # Text cursor enable mode. (default enabled).
-        ])
+        self.mode = set(
+            [
+                mo.DECAWM,  # Autowrap mode. (default: disabled).
+                mo.DECTCEM,  # Text cursor enable mode. (default enabled).
+            ]
+        )
 
         # According to VT220 manual and ``linux/drivers/tty/vt.c``
         # the default G0 charset is latin-1, but for reasons unknown
@@ -192,7 +204,9 @@ class BetterScreen(object):
     def _reset_screen(self):
         """ Reset the Screen content. (also called when switching from/to
         alternate buffer. """
-        self.pt_screen = Screen(default_char=Char(' ', ''))  # TODO: maybe stop using this Screen class.
+        self.pt_screen = Screen(
+            default_char=Char(" ", "")
+        )  # TODO: maybe stop using this Screen class.
 
         self.pt_screen.cursor_position = CursorPosition(0, 0)
         self.pt_screen.show_cursor = True
@@ -202,9 +216,16 @@ class BetterScreen(object):
         self.wrapped_lines = []  # List of line indexes that were wrapped.
 
         self._attrs = Attrs(
-            color=None, bgcolor=None, bold=False, underline=False,
-            italic=False, blink=False, reverse=False, hidden=False)
-        self._style_str = ''
+            color=None,
+            bgcolor=None,
+            bold=False,
+            underline=False,
+            italic=False,
+            blink=False,
+            reverse=False,
+            hidden=False,
+        )
+        self._style_str = ""
 
         self.margins = None
 
@@ -225,9 +246,7 @@ class BetterScreen(object):
             # `cursor_position_y+lines`. Remove them by setting 'max_y'.
             # (If we don't do this. Clearing the screen, followed by reducing
             # the height will keep the cursor at the top, hiding some content.)
-            self.max_y = min(
-                self.max_y,
-                self.pt_cursor_position.y + lines - 1)
+            self.max_y = min(self.max_y, self.pt_cursor_position.y + lines - 1)
 
             self._reflow()
 
@@ -296,9 +315,9 @@ class BetterScreen(object):
         """
         if code in cs.MAPS:
             charset_map = cs.MAPS[code]
-            if mode == '(':
+            if mode == "(":
                 self.g0_charset = charset_map
-            elif mode == ')':
+            elif mode == ")":
                 self.g1_charset = charset_map
 
     def set_mode(self, *modes, **kwargs):
@@ -328,8 +347,9 @@ class BetterScreen(object):
         # On "\e[?1049h", enter alternate screen mode. Backup the current state,
         if (1049 << 5) in modes:
             self._original_screen = self.pt_screen
-            self._original_screen_vars = \
-                dict((v, getattr(self, v)) for v in self.swap_variables)
+            self._original_screen_vars = dict(
+                (v, getattr(self, v)) for v in self.swap_variables
+            )
             self._reset_screen()
             self._reset_offset_and_margins()
 
@@ -445,14 +465,15 @@ class BetterScreen(object):
                 # causes the render engine to clear this character, when
                 # overwritten.
                 row[cursor_position_x] = pt_char
-                row[cursor_position_x + 1] = char_cache['', style]
+                row[cursor_position_x + 1] = char_cache["", style]
             elif char_width == 0:
                 # This is probably a part of a decomposed unicode character.
                 # Merge into the previous cell.
                 # See: https://en.wikipedia.org/wiki/Unicode_equivalence
                 prev_char = row[cursor_position_x - 1]
                 row[cursor_position_x - 1] = char_cache[
-                    prev_char.char + pt_char.char, prev_char.style]
+                    prev_char.char + pt_char.char, prev_char.style
+                ]
             else:  # char_width < 0
                 # (Should not happen.)
                 char_width = 0
@@ -499,8 +520,9 @@ class BetterScreen(object):
                 data_buffer = self.data_buffer
 
                 for line in range(top, bottom):
-                    data_buffer[line + line_offset] = \
-                        data_buffer[line + line_offset + 1]
+                    data_buffer[line + line_offset] = data_buffer[
+                        line + line_offset + 1
+                    ]
                     data_buffer.pop(line + line_offset + 1, None)
             else:
                 self.cursor_down()
@@ -531,7 +553,9 @@ class BetterScreen(object):
         # When scrolling over the full screen -> keep history.
         if self.pt_cursor_position.y - line_offset == top:
             for i in range(bottom - 1, top - 1, -1):
-                self.data_buffer[i + line_offset + 1] = self.data_buffer[i + line_offset]
+                self.data_buffer[i + line_offset + 1] = self.data_buffer[
+                    i + line_offset
+                ]
                 self.data_buffer.pop(i + line_offset, None)
         else:
             self.cursor_up()
@@ -573,16 +597,19 @@ class BetterScreen(object):
 
     def save_cursor(self):
         """Push the current cursor position onto the stack."""
-        self.savepoints.append(_Savepoint(
-            self.pt_cursor_position.x,
-            self.pt_cursor_position.y,
-            self.g0_charset,
-            self.g1_charset,
-            self.charset,
-            mo.DECOM in self.mode,
-            mo.DECAWM in self.mode,
-            self._attrs,
-            self._style_str))
+        self.savepoints.append(
+            _Savepoint(
+                self.pt_cursor_position.x,
+                self.pt_cursor_position.y,
+                self.g0_charset,
+                self.g1_charset,
+                self.charset,
+                mo.DECOM in self.mode,
+                mo.DECAWM in self.mode,
+                self._attrs,
+                self._style_str,
+            )
+        )
 
     def restore_cursor(self):
         """Set the current cursor position to whatever cursor is on top
@@ -631,7 +658,9 @@ class BetterScreen(object):
                 if line - count < top:
                     data_buffer.pop(line + line_offset, None)
                 else:
-                    data_buffer[line + line_offset] = data_buffer[line + line_offset - count]
+                    data_buffer[line + line_offset] = data_buffer[
+                        line + line_offset - count
+                    ]
                     data_buffer.pop(line + line_offset - count, None)
 
             self.carriage_return()
@@ -660,7 +689,9 @@ class BetterScreen(object):
                 if line + count > bottom:
                     data_buffer.pop(line + line_offset, None)
                 else:
-                    data_buffer[line + line_offset] = self.data_buffer[line + count + line_offset]
+                    data_buffer[line + line_offset] = self.data_buffer[
+                        line + count + line_offset
+                    ]
 
     def insert_characters(self, count=None):
         """Inserts the indicated # of blank characters at the cursor
@@ -763,8 +794,9 @@ class BetterScreen(object):
         # Ensure bounds.
         # (Following code is faster than calling `self.ensure_bounds`.)
         _, bottom = margins
-        cursor_position.y = min(cursor_position.y + (count or 1),
-                                bottom + self.line_offset + 1)
+        cursor_position.y = min(
+            cursor_position.y + (count or 1), bottom + self.line_offset + 1
+        )
 
         self.max_y = max(self.max_y, cursor_position.y)
 
@@ -801,8 +833,7 @@ class BetterScreen(object):
 
         :param int count: number of columns to skip.
         """
-        self.pt_cursor_position.x = max(
-            0, self.pt_cursor_position.x - (count or 1))
+        self.pt_cursor_position.x = max(0, self.pt_cursor_position.x - (count or 1))
         self.ensure_bounds()
 
     def cursor_forward(self, count=None):
@@ -832,8 +863,9 @@ class BetterScreen(object):
         cursor_position = self.pt_cursor_position
         row = self.data_buffer[cursor_position.y]
 
-        for column in range(cursor_position.x,
-                            min(cursor_position.x + count, self.columns)):
+        for column in range(
+            cursor_position.x, min(cursor_position.x + count, self.columns)
+        ):
             row[column] = Char(style=row[column].style)
 
     def erase_in_line(self, type_of=0, private=False):
@@ -909,14 +941,14 @@ class BetterScreen(object):
                     # including it,
                     range(line_offset, pt_cursor_position.y),
                     # c) erase the whole display.
-                    range(line_offset, max_line + 1)
+                    range(line_offset, max_line + 1),
                 )[type_of]
             except IndexError:
                 return
 
             data_buffer = self.data_buffer
             for line in interval:
-                data_buffer[line] = defaultdict(lambda: Char(' '))
+                data_buffer[line] = defaultdict(lambda: Char(" "))
 
             # In case of 0 or 1 we have to erase the line with the cursor.
             if type_of in [0, 1]:
@@ -958,24 +990,25 @@ class BetterScreen(object):
         line_offset = self.line_offset
 
         cursor_position.x = min(max(0, cursor_position.x), self.columns - 1)
-        cursor_position.y = min(max(top + line_offset, cursor_position.y),
-                                bottom + line_offset + 1)
+        cursor_position.y = min(
+            max(top + line_offset, cursor_position.y), bottom + line_offset + 1
+        )
 
     def alignment_display(self):
         for y in range(0, self.lines):
             line = self.data_buffer[y + self.line_offset]
             for x in range(0, self.columns):
-                line[x] = Char('E')
+                line[x] = Char("E")
 
     # Mapping of the ANSI color codes to their names.
-    _fg_colors = dict((v, '#' + k) for k, v in FG_ANSI_COLORS.items())
-    _bg_colors = dict((v, '#' + k) for k, v in BG_ANSI_COLORS.items())
+    _fg_colors = dict((v, "#" + k) for k, v in FG_ANSI_COLORS.items())
+    _bg_colors = dict((v, "#" + k) for k, v in BG_ANSI_COLORS.items())
 
     # Mapping of the escape codes for 256colors to their '#ffffff' value.
     _256_colors = {}
 
     for i, (r, g, b) in enumerate(_256_colors_table.colors):
-        _256_colors[1024 + i] = '#%02x%02x%02x' % (r, g, b)
+        _256_colors[1024 + i] = "#%02x%02x%02x" % (r, g, b)
 
     def select_graphic_rendition(self, *attrs):
         """ Support 256 colours """
@@ -1020,8 +1053,15 @@ class BetterScreen(object):
             elif not attr:
                 replace = {}
                 self._attrs = Attrs(
-                    color=None, bgcolor=None, bold=False, underline=False,
-                    italic=False, blink=False, reverse=False, hidden=False)
+                    color=None,
+                    bgcolor=None,
+                    bold=False,
+                    underline=False,
+                    italic=False,
+                    blink=False,
+                    reverse=False,
+                    hidden=False,
+                )
 
             elif attr in (38, 48):
                 n = attrs.pop()
@@ -1038,7 +1078,11 @@ class BetterScreen(object):
                 # True colors.
                 if n == 2:
                     try:
-                        color_str = '#%02x%02x%02x' % (attrs.pop(), attrs.pop(), attrs.pop())
+                        color_str = "#%02x%02x%02x" % (
+                            attrs.pop(),
+                            attrs.pop(),
+                            attrs.pop(),
+                        )
                     except IndexError:
                         pass
                     else:
@@ -1050,23 +1094,23 @@ class BetterScreen(object):
         attrs = self._attrs._replace(**replace)
 
         # Build style string.
-        style_str = ''
+        style_str = ""
         if attrs.color:
-            style_str += '%s ' % attrs.color
+            style_str += "%s " % attrs.color
         if attrs.bgcolor:
-            style_str += 'bg:%s ' % attrs.bgcolor
+            style_str += "bg:%s " % attrs.bgcolor
         if attrs.bold:
-            style_str += 'bold '
+            style_str += "bold "
         if attrs.italic:
-            style_str += 'italic '
+            style_str += "italic "
         if attrs.underline:
-            style_str += 'underline '
+            style_str += "underline "
         if attrs.blink:
-            style_str += 'blink '
+            style_str += "blink "
         if attrs.reverse:
-            style_str += 'reverse '
+            style_str += "reverse "
         if attrs.hidden:
-            style_str += 'hidden '
+            style_str += "hidden "
 
         self._style_str = unicode_intern(style_str)
         self._attrs = attrs
@@ -1079,11 +1123,11 @@ class BetterScreen(object):
             y = self.pt_cursor_position.y - self.line_offset + 1
             x = self.pt_cursor_position.x + 1
 
-            response = '\x1b[%i;%iR' % (y, x)
+            response = "\x1b[%i;%iR" % (y, x)
             self.write_process_input(response)
 
     def report_device_attributes(self, *args, **kwargs):
-        response = '\x1b[>84;0;0c'
+        response = "\x1b[>84;0;0c"
         self.write_process_input(response)
 
     def set_icon_name(self, param):
@@ -1111,7 +1155,7 @@ class BetterScreen(object):
         width = self.columns
 
         data_buffer = self.pt_screen.data_buffer
-        new_data_buffer = Screen(default_char=Char(' ', '')).data_buffer
+        new_data_buffer = Screen(default_char=Char(" ", "")).data_buffer
         cursor_position = self.pt_screen.cursor_position
         cy, cx = (cursor_position.y, cursor_position.x)
 
@@ -1192,12 +1236,19 @@ class BetterScreen(object):
         self.pt_cursor_position = self.pt_screen.cursor_position
 
         # If everything goes well, the cursor should still be on the same character.
-        if cursor_character != new_data_buffer[cursor_position.y][cursor_position.x].char:
+        if (
+            cursor_character
+            != new_data_buffer[cursor_position.y][cursor_position.x].char
+        ):
             # FIXME:
-            raise Exception('Reflow failed: %r %r' % (cursor_character, new_data_buffer[cursor_position.y][cursor_position.x].char))
+            raise Exception(
+                "Reflow failed: %r %r"
+                % (
+                    cursor_character,
+                    new_data_buffer[cursor_position.y][cursor_position.x].char,
+                )
+            )
 
         self.max_y = max(self.data_buffer)
 
-        self.max_y = min(
-            self.max_y,
-            cursor_position.y + self.lines - 1)
+        self.max_y = min(self.max_y, cursor_position.y + self.lines - 1)

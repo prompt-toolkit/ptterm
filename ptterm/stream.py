@@ -23,12 +23,12 @@ class BetterStream(Stream):
         }
     )
 
-    def __init__(self, screen):
+    def __init__(self, screen) -> None:
         super(BetterStream, self).__init__()
         self.listener = screen
         self._validate_screen()
 
-    def _validate_screen(self):
+    def _validate_screen(self) -> None:
         """
         Check whether our Screen class has all the required callbacks.
         (We want to verify this statically, before feeding content to the

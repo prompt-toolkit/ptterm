@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from __future__ import unicode_literals
-
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, merge_key_bindings
 from prompt_toolkit.key_binding.defaults import load_key_bindings

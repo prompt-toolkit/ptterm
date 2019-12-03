@@ -2,6 +2,8 @@
 Mapping between vt100 key sequences, the prompt_toolkit key constants and the
 Pymux namings. (Those namings are kept compatible with tmux.)
 """
+from typing import Dict, Tuple
+
 from prompt_toolkit.input.vt100_parser import ANSI_SEQUENCES
 from prompt_toolkit.keys import Keys
 
@@ -12,7 +14,7 @@ __all__ = (
 )
 
 
-def pymux_key_to_prompt_toolkit_key_sequence(key):
+def pymux_key_to_prompt_toolkit_key_sequence(key: str) -> Tuple[str, ...]:
     """
     Turn a pymux description of a key. E.g.  "C-a" or "M-x" into a
     prompt-toolkit key sequence.
@@ -40,31 +42,36 @@ def pymux_key_to_prompt_toolkit_key_sequence(key):
 # Create a mapping from prompt_toolkit keys to their ANSI sequences.
 # TODO: This is not completely correct yet. It doesn't take
 #       cursor/application mode into account. Create new tables for this.
-_PROMPT_TOOLKIT_KEY_TO_VT100 = dict(
-    (key, vt100_data) for vt100_data, key in ANSI_SEQUENCES.items()
-)
+_PROMPT_TOOLKIT_KEY_TO_VT100: Dict[str, str] = {
+    key: vt100_data
+    for vt100_data, key in ANSI_SEQUENCES.items()
+    if not isinstance(key, tuple)
+}
 
 
-def prompt_toolkit_key_to_vt100_key(key, application_mode=False):
+def prompt_toolkit_key_to_vt100_key(key: str, application_mode: bool = False) -> str:
     """
     Turn a prompt toolkit key. (E.g Keys.ControlB) into a Vt100 key sequence.
     (E.g. \x1b[A.)
     """
-    application_mode_keys = {
+    application_mode_keys: Dict[str, str] = {
         Keys.Up: "\x1bOA",
         Keys.Left: "\x1bOD",
         Keys.Right: "\x1bOC",
         Keys.Down: "\x1bOB",
     }
 
-    if application_mode and key in application_mode_keys:
-        return application_mode_keys.get(key)
-    else:
-        return _PROMPT_TOOLKIT_KEY_TO_VT100.get(key, key)
+    if application_mode:
+        try:
+            return application_mode_keys[key]
+        except KeyError:
+            pass
+
+    return _PROMPT_TOOLKIT_KEY_TO_VT100.get(key, key)
 
 
-PYMUX_TO_PROMPT_TOOLKIT_KEYS = {
-    "Space": (" "),
+PYMUX_TO_PROMPT_TOOLKIT_KEYS: Dict[str, Tuple[str, ...]] = {
+    "Space": (" ",),
     "C-a": (Keys.ControlA,),
     "C-b": (Keys.ControlB,),
     "C-c": (Keys.ControlC,),

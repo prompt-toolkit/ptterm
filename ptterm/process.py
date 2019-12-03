@@ -3,8 +3,8 @@ The child process.
 """
 import time
 from asyncio import get_event_loop
+from typing import Callable, Optional
 
-from prompt_toolkit.document import Document
 from prompt_toolkit.eventloop import call_soon_threadsafe
 from prompt_toolkit.utils import is_windows
 
@@ -53,12 +53,12 @@ class Process:
 
     def __init__(
         self,
-        invalidate,
+        invalidate: Callable[[], None],
         command=None,
         before_exec_func=None,
         bell_func=None,
-        done_callback=None,
-        has_priority=None,
+        done_callback: Optional[Callable[[], None]] = None,
+        has_priority: Optional[Callable[[], bool]] = None,
     ):
         assert callable(invalidate)
         assert bell_func is None or callable(bell_func)
@@ -91,7 +91,7 @@ class Process:
         self.stream = BetterStream(self.screen)
         self.stream.attach(self.screen)
 
-    def start(self):
+    def start(self) -> None:
         """
         Start the process: fork child.
         """
@@ -99,13 +99,10 @@ class Process:
         self.terminal.start()
         self.terminal.connect_reader()
 
-    def set_size(self, width, height):
+    def set_size(self, width: int, height: int) -> None:
         """
         Set terminal size.
         """
-        assert isinstance(width, int)
-        assert isinstance(height, int)
-
         if (self.sx, self.sy) != (width, height):
             self.terminal.set_size(width, height)
         self.screen.resize(lines=height, columns=width)
@@ -116,7 +113,7 @@ class Process:
         self.sx = width
         self.sy = height
 
-    def write_input(self, data, paste=False):
+    def write_input(self, data: str, paste: bool = False) -> None:
         """
         Write user key strokes to the input.
 
@@ -130,7 +127,7 @@ class Process:
 
         self.terminal.write_text(data)
 
-    def write_key(self, key):
+    def write_key(self, key: str) -> None:
         """
         Write prompt_toolkit Key.
         """
@@ -139,7 +136,7 @@ class Process:
         )
         self.write_input(data)
 
-    def _read(self):
+    def _read(self) -> None:
         """
         Read callback, called by the loop.
         """
@@ -150,7 +147,7 @@ class Process:
 
         if not self.terminal.closed:
 
-            def process():
+            def process() -> None:
                 self.stream.feed(d)
                 self.invalidate()
 
@@ -183,7 +180,7 @@ class Process:
             # End of stream. Remove child.
             self.terminal.disconnect_reader()
 
-    def suspend(self):
+    def suspend(self) -> None:
         """
         Suspend process. Stop reading stdout. (Called when going into copy mode.)
         """
@@ -191,7 +188,7 @@ class Process:
             self.suspended = True
             self.terminal.disconnect_reader()
 
-    def resume(self):
+    def resume(self) -> None:
         """
         Resume from 'suspend'.
         """
@@ -199,99 +196,26 @@ class Process:
             self.terminal.connect_reader()
             self.suspended = False
 
-    def get_cwd(self):
+    def get_cwd(self) -> str:
         """
         The current working directory for this process. (Or `None` when
         unknown.)
         """
         return self.terminal.get_cwd()
 
-    def get_name(self):
+    def get_name(self) -> str:
         """
         The name for this process. (Or `None` when unknown.)
         """
         # TODO: Maybe cache for short time.
         return self.terminal.get_name()
 
-    def kill(self):
+    def kill(self) -> None:
         """
         Kill process.
         """
         self.terminal.kill()
 
     @property
-    def is_terminated(self):
+    def is_terminated(self) -> bool:
         return self.terminal.closed
-
-    def create_copy_document(self):
-        """
-        Create a Document instance and token list that can be used in copy
-        mode.
-        """
-        data_buffer = self.screen.data_buffer
-        text = []
-        token_lists = []
-
-        first_row = min(data_buffer.keys())
-        last_row = max(data_buffer.keys())
-
-        def token_has_no_background(token):
-            try:
-                # Token looks like ('C', color, bgcolor, bold, underline, ...)
-                return token[2] is None
-            except IndexError:
-                return True
-
-        for lineno in range(first_row, last_row + 1):
-            token_list = []
-
-            row = data_buffer[lineno]
-            max_column = max(row.keys()) if row else 0
-
-            # Remove trailing whitespace. (If the background is transparent.)
-            row_data = [row[x] for x in range(0, max_column + 1)]
-
-            while (
-                row_data
-                and row_data[-1].char.isspace()
-                and token_has_no_background(row_data[-1].token)
-            ):
-                row_data.pop()
-
-            # Walk through row.
-            char_iter = iter(range(len(row_data)))
-
-            for x in char_iter:
-                c = row[x]
-                text.append(c.char)
-                token_list.append((c.token, c.char))
-
-                # Skip next cell when this is a double width character.
-                if c.width == 2:
-                    try:
-                        next(char_iter)
-                    except StopIteration:
-                        pass
-
-            token_lists.append(token_list)
-            text.append("\n")
-
-        def get_tokens_for_line(lineno):
-            try:
-                return token_lists[lineno]
-            except IndexError:
-                return []
-
-        # Calculate cursor position.
-        d = Document(text="".join(text))
-
-        return (
-            Document(
-                text=d.text,
-                cursor_position=d.translate_row_col_to_index(
-                    row=self.screen.pt_screen.cursor_position.y,
-                    col=self.screen.pt_screen.cursor_position.x,
-                ),
-            ),
-            get_tokens_for_line,
-        )

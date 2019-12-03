@@ -7,7 +7,7 @@ import os
 __all__ = ("get_default_shell",)
 
 
-def get_default_shell():
+def get_default_shell() -> str:
     """
     return the path to the default shell for the current user.
     """

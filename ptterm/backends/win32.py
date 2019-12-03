@@ -1,4 +1,3 @@
-from prompt_toolkit.eventloop import get_event_loop
 from prompt_toolkit.eventloop.future import Future
 from yawinpty import Pty, SpawnConfig
 
@@ -19,7 +18,6 @@ class Win32Terminal(Terminal):
         self.pty = Pty()
         self.ready_f = Future()
         self._input_ready_callbacks = []
-        self.loop = get_event_loop()
 
         # Open input/output pipes.
         def received_data(data):

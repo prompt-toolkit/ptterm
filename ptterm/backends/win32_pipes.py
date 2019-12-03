@@ -3,6 +3,7 @@ Abstractions on top of Win32 pipes for integration in the prompt_toolkit event
 loop.
 """
 import ctypes
+from asyncio import Event, Future, ensure_future, get_event_loop
 from ctypes import (
     POINTER,
     Structure,
@@ -18,9 +19,6 @@ from ctypes import (
     windll,
 )
 from ctypes.wintypes import BOOL, DWORD, HANDLE, ULONG
-
-from prompt_toolkit.eventloop import From, Future, ensure_future, get_event_loop
-from prompt_toolkit.eventloop.event import Event
 
 __all__ = [
     "PipeReader",
@@ -105,7 +103,7 @@ class PipeReader:
         """
         f = Future()
 
-        def ready():
+        def ready() -> None:
             get_event_loop().remove_win32_handle(self._event)
             f.set_result(None)
 
@@ -113,14 +111,14 @@ class PipeReader:
 
         return f
 
-    def _async_reader(self):
+    async def _async_reader(self):
         buffer_size = 65536
         c_read = DWORD()
         buffer = ctypes.create_string_buffer(buffer_size + 1)
 
         while True:
             # Wait until `start_reading` is called.
-            yield From(self._reading.wait())
+            await self._reading.wait()
 
             # Call read.
             success = windll.kernel32.ReadFile(
@@ -140,7 +138,7 @@ class PipeReader:
                 # Pending I/O. Wait for it to finish.
                 if error_code == ERROR_IO_PENDING:
                     # Wait for event.
-                    yield From(self._wait_for_event())
+                    await self._wait_for_event()
 
                     # Get pending data.
                     success = windll.kernel32.GetOverlappedResult(

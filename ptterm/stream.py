@@ -24,7 +24,7 @@ class BetterStream(Stream):
     )
 
     def __init__(self, screen) -> None:
-        super(BetterStream, self).__init__()
+        super().__init__()
         self.listener = screen
         self._validate_screen()
 

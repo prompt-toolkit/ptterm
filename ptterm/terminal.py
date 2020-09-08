@@ -1,4 +1,3 @@
-# encoding: utf-8
 """
 The layout engine. This builds the prompt_toolkit layout.
 """
@@ -34,24 +33,22 @@ from prompt_toolkit.layout.processors import (
 )
 from prompt_toolkit.layout.screen import Point
 from prompt_toolkit.mouse_events import MouseEventType
-from prompt_toolkit.utils import Event
+from prompt_toolkit.utils import Event, is_windows
 from prompt_toolkit.widgets.toolbars import SearchToolbar
 
+from .backends import Backend
 from .process import Process
 
-__all__ = ("Terminal",)
+__all__ = ["Terminal"]
 
 
 class _TerminalControl(UIControl):
     def __init__(
         self,
-        command: List[str] = ["/bin/bash"],
+        backend: Backend,
         done_callback: Optional[Callable[[], None]] = None,
-        before_exec_func=None,
         bell_func: Optional[Callable[[], None]] = None,
-    ):
-        assert before_exec_func is None or callable(before_exec_func)
-
+    ) -> None:
         def has_priority() -> bool:
             # Give priority to the processing of this terminal output, if this
             # user control has the focus.
@@ -65,8 +62,7 @@ class _TerminalControl(UIControl):
 
         self.process = Process(
             lambda: self.on_content_changed.fire(),
-            command=command,
-            before_exec_func=before_exec_func,
+            backend=backend,
             done_callback=done_callback,
             bell_func=bell_func,
             has_priority=has_priority,
@@ -233,7 +229,7 @@ class _Window(Window):
 
     def __init__(self, terminal_control: _TerminalControl, **kw) -> None:
         self.terminal_control = terminal_control
-        super(_Window, self).__init__(**kw)
+        super().__init__(**kw)
 
     def write_to_screen(self, *a, **kw) -> None:
         # Make sure that the bottom of the terminal is always visible.
@@ -243,30 +239,50 @@ class _Window(Window):
         #       lines counts the numbers of lines, starting at 1 for one line.
         self.vertical_scroll = screen.max_y - screen.lines + 1
 
-        super(_Window, self).write_to_screen(*a, **kw)
+        super().write_to_screen(*a, **kw)
+
+
+def create_backend(
+    command: List[str], before_exec_func: Optional[Callable[[], None]]
+) -> Backend:
+    if is_windows():
+        from .backends.win32 import Win32Backend
+
+        return Win32Backend()
+    else:
+        from .backends.posix import PosixBackend
+
+        return PosixBackend.from_command(command, before_exec_func=before_exec_func)
 
 
 class Terminal:
     """
     Terminal widget for use in a prompt_toolkit layout.
+
+    :param commmand: List of command line arguments.
+        For instance: `['python', '-c', 'print("test")']`
+    :param before_exec_func: Function which is called in the child process,
+        right before calling `exec`. Useful for instance for changing the
+        current working directory or setting environment variables.
     """
 
     def __init__(
         self,
         command=["/bin/bash"],
         before_exec_func=None,
+        backend: Optional[Backend] = None,
         bell_func: Optional[Callable[[], None]] = None,
         style: str = "",
         width: Optional[int] = None,
         height: Optional[int] = None,
         done_callback: Optional[Callable[[], None]] = None,
-    ):
+    ) -> None:
+
+        if backend is None:
+            backend = create_backend(command, before_exec_func)
 
         self.terminal_control = _TerminalControl(
-            command=command,
-            before_exec_func=before_exec_func,
-            bell_func=bell_func,
-            done_callback=done_callback,
+            backend=backend, bell_func=bell_func, done_callback=done_callback,
         )
 
         self.terminal_window = _Window(

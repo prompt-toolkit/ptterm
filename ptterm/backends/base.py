@@ -1,9 +1,9 @@
 import abc
 
-__all__ = ("Terminal",)
+__all__ = ["Backend"]
 
 
-class Terminal(metaclass=abc.ABCMeta):
+class Backend(metaclass=abc.ABCMeta):
     """
     Base class for the terminal backend-interface.
     """

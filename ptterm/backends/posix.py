@@ -8,13 +8,13 @@ from asyncio import Future, get_event_loop
 
 from prompt_toolkit.input.posix_utils import PosixStdinReader
 
-from .base import Terminal
+from .base import Backend
 from .posix_utils import pty_make_controlling_tty, set_terminal_size
 
-__all__ = ("PosixTerminal",)
+__all__ = ["PosixBackend"]
 
 
-class PosixTerminal(Terminal):
+class PosixBackend(Backend):
     def __init__(self, exec_func):
         self.exec_func = exec_func
 

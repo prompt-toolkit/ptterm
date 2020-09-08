@@ -1,15 +1,16 @@
-from prompt_toolkit.eventloop.future import Future
 from yawinpty import Pty, SpawnConfig
 
-from .base import Terminal
+from prompt_toolkit.eventloop.future import Future
+
+from .base import Backend
 from .win32_pipes import PipeReader, PipeWriter
 
 __all__ = [
-    "Win32Terminal",
+    "Win32Backend",
 ]
 
 
-class Win32Terminal(Terminal):
+class Win32Backend(Backend):
     """
     Terminal backend for Windows, on top of winpty.
     """

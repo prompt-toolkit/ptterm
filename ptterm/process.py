@@ -6,24 +6,13 @@ from asyncio import get_event_loop
 from typing import Callable, Optional
 
 from prompt_toolkit.eventloop import call_soon_threadsafe
-from prompt_toolkit.utils import is_windows
 
+from .backends import Backend
 from .key_mappings import prompt_toolkit_key_to_vt100_key
 from .screen import BetterScreen
 from .stream import BetterStream
 
-__all__ = ("Process",)
-
-
-def create_terminal(command, before_exec_func):
-    if is_windows():
-        from .backends.win32 import Win32Terminal
-
-        return Win32Terminal()
-    else:
-        from .backends.posix import PosixTerminal
-
-        return PosixTerminal.from_command(command, before_exec_func=before_exec_func)
+__all__ = ["Process"]
 
 
 class Process:
@@ -40,11 +29,6 @@ class Process:
     :param invalidate: When the screen content changes, and the renderer needs
         to redraw the output, this callback is called.
     :param bell_func: Called when the process does a `bell`.
-    :param commmand: List of command line arguments.
-        For instance: `['python', '-c', 'print("test")']`
-    :param before_exec_func: Function which is called in the child process,
-        right before calling `exec`. Useful for instance for changing the
-        current working directory or setting environment variables.
     :param done_callback: Called when the process terminates.
     :param has_priority: Callable that returns True when this Process should
         get priority in the event loop. (When this pane has the focus.)
@@ -54,19 +38,14 @@ class Process:
     def __init__(
         self,
         invalidate: Callable[[], None],
-        command=None,
-        before_exec_func=None,
-        bell_func=None,
+        backend: Backend,
+        bell_func: Optional[Callable[[], None]] = None,
         done_callback: Optional[Callable[[], None]] = None,
         has_priority: Optional[Callable[[], bool]] = None,
-    ):
-        assert callable(invalidate)
-        assert bell_func is None or callable(bell_func)
-        assert done_callback is None or callable(done_callback)
-        assert has_priority is None or callable(has_priority)
-
+    ) -> None:
         self.loop = get_event_loop()
         self.invalidate = invalidate
+        self.backend = backend
         self.done_callback = done_callback
         self.has_priority = has_priority or (lambda: True)
 
@@ -74,11 +53,10 @@ class Process:
         self._reader_connected = False
 
         # Create terminal interface.
-        self.terminal = create_terminal(command, before_exec_func=before_exec_func)
-        self.terminal.add_input_ready_callback(self._read)
+        self.backend.add_input_ready_callback(self._read)
 
         if done_callback is not None:
-            self.terminal.ready_f.add_done_callback(lambda _: done_callback())
+            self.backend.ready_f.add_done_callback(lambda _: done_callback())
 
         # Create output stream and attach to screen
         self.sx = 0
@@ -96,15 +74,15 @@ class Process:
         Start the process: fork child.
         """
         self.set_size(120, 24)
-        self.terminal.start()
-        self.terminal.connect_reader()
+        self.backend.start()
+        self.backend.connect_reader()
 
     def set_size(self, width: int, height: int) -> None:
         """
         Set terminal size.
         """
         if (self.sx, self.sy) != (width, height):
-            self.terminal.set_size(width, height)
+            self.backend.set_size(width, height)
         self.screen.resize(lines=height, columns=width)
 
         self.screen.lines = height
@@ -125,7 +103,7 @@ class Process:
         if paste and self.screen.bracketed_paste_enabled:
             data = "\x1b[200~" + data + "\x1b[201~"
 
-        self.terminal.write_text(data)
+        self.backend.write_text(data)
 
     def write_key(self, key: str) -> None:
         """
@@ -140,12 +118,12 @@ class Process:
         """
         Read callback, called by the loop.
         """
-        d = self.terminal.read_text(4096)
+        d = self.backend.read_text(4096)
         assert isinstance(d, str), "got %r" % type(d)
         # Make sure not to read too much at once. (Otherwise, this
         # could block the event loop.)
 
-        if not self.terminal.closed:
+        if not self.backend.closed:
 
             def process() -> None:
                 self.stream.feed(d)
@@ -158,13 +136,13 @@ class Process:
 
             # Otherwise, postpone processing until we have CPU time available.
             else:
-                self.terminal.disconnect_reader()
+                self.backend.disconnect_reader()
 
                 def do_asap():
                     " Process output and reconnect to event loop. "
                     process()
                     if not self.suspended:
-                        self.terminal.connect_reader()
+                        self.backend.connect_reader()
 
                 # When the event loop is saturated because of CPU, we will
                 # postpone this processing max 'x' seconds.
@@ -178,7 +156,7 @@ class Process:
                 call_soon_threadsafe(do_asap, max_postpone_time=timestamp)
         else:
             # End of stream. Remove child.
-            self.terminal.disconnect_reader()
+            self.backend.disconnect_reader()
 
     def suspend(self) -> None:
         """
@@ -186,14 +164,14 @@ class Process:
         """
         if not self.suspended:
             self.suspended = True
-            self.terminal.disconnect_reader()
+            self.backend.disconnect_reader()
 
     def resume(self) -> None:
         """
         Resume from 'suspend'.
         """
         if self.suspended:
-            self.terminal.connect_reader()
+            self.backend.connect_reader()
             self.suspended = False
 
     def get_cwd(self) -> str:
@@ -201,21 +179,21 @@ class Process:
         The current working directory for this process. (Or `None` when
         unknown.)
         """
-        return self.terminal.get_cwd()
+        return self.backend.get_cwd()
 
     def get_name(self) -> str:
         """
         The name for this process. (Or `None` when unknown.)
         """
         # TODO: Maybe cache for short time.
-        return self.terminal.get_name()
+        return self.backend.get_name()
 
     def kill(self) -> None:
         """
         Kill process.
         """
-        self.terminal.kill()
+        self.backend.kill()
 
     @property
     def is_terminated(self) -> bool:
-        return self.terminal.closed
+        return self.backend.closed

@@ -211,7 +211,8 @@ class BetterScreen:
 
         self.data_buffer = self.pt_screen.data_buffer
         self.pt_cursor_position = CursorPosition(0, 0)
-        self.wrapped_lines: List[int] = []  # List of line indexes that were wrapped.
+        # List of line indexes that were wrapped.
+        self.wrapped_lines: List[int] = []
 
         self._attrs = Attrs(
             color=None,
@@ -346,7 +347,8 @@ class BetterScreen:
         if mo.DECTCEM in modes:
             self.pt_screen.show_cursor = True
 
-        # On "\e[?1049h", enter alternate screen mode. Backup the current state,
+        # On "\e[?1049h", enter alternate screen mode.
+        # Backup the current state,
         if (1049 << 5) in modes:
             self._original_screen = self.pt_screen
             self._original_screen_vars = dict(
@@ -686,9 +688,11 @@ class BetterScreen:
         if top <= pt_cursor_position.y - line_offset <= bottom:
             data_buffer = self.data_buffer
 
-            # Iterate from the cursor Y position until the end of the visible input.
+            # Iterate from the cursor Y position until
+            # the end of the visible input.
             for line in range(pt_cursor_position.y - line_offset, bottom + 1):
-                # When 'x' lines further are out of the margins, replace by an empty line,
+                # When 'x' lines further are out of the margins,
+                # replace by an empty line,
                 # Otherwise copy the line from there.
                 if line + count > bottom:
                     data_buffer.pop(line + line_offset, None)
@@ -926,7 +930,8 @@ class BetterScreen:
         try:
             max_line = max(self.pt_screen.data_buffer)
         except ValueError:
-            # max() called on empty sequence. Screen is empty. Nothing to erase.
+            # max() called on empty sequence.
+            # Screen is empty. Nothing to erase.
             return
 
         if type_of == 3:
@@ -1227,8 +1232,8 @@ class BetterScreen:
             new_row_index += 1
             new_column_index = 0
 
-        # TODO: when the window gets smaller, and the cursor is at the top of the screen,
-        #       remove lines at the bottom.
+        # TODO: when the window gets smaller, and the cursor
+        # is at the top of the screen, remove lines at the bottom.
         for row_index in range(min(data_buffer), max(data_buffer) + 1):
             if row_index > cy + self.lines:
                 del data_buffer[row_index]
@@ -1240,7 +1245,8 @@ class BetterScreen:
         cursor_position.y, cursor_position.x = cy, cx
         self.pt_cursor_position = cursor_position
 
-        # If everything goes well, the cursor should still be on the same character.
+        # If everything goes well, the cursor should
+        # still be on the same character.
         if (
             cursor_character
             != new_data_buffer[cursor_position.y][cursor_position.x].char

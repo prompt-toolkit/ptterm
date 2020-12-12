@@ -30,9 +30,11 @@ def pty_make_controlling_tty(tty_fd):
         if fd >= 0:
             os.close(fd)
     # which exception, shouldnt' we catch explicitly .. ?
-    except:
-        # Already disconnected. This happens if running inside cron.
-        pass
+    except Exception as e:
+        # Already disconnected. This happens if running inside cron
+        # If we're disconnected I understand that I can discard the exception
+        del e
+        # pass
 
     os.setsid()
 
@@ -47,9 +49,12 @@ def pty_make_controlling_tty(tty_fd):
                 "tty. It is still possible to open /dev/tty."
             )
     # which exception, shouldnt' we catch explicitly .. ?
-    except:
+    # Don't know what exception
+    except Exception as e:
         # Good! We are disconnected from a controlling tty.
-        pass
+        # If we're disconnected I understand that I can discard the exception
+        del e
+        # pass
 
     # Verify we can open child pty.
     fd = os.open(child_name, os.O_RDWR)

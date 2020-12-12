@@ -160,7 +160,9 @@ class Process:
 
     def suspend(self) -> None:
         """
-        Suspend process. Stop reading stdout. (Called when going into copy mode.)
+        Suspend process.
+        Stop reading stdout.
+        (Called when going into copy mode.)
         """
         if not self.suspended:
             self.suspended = True

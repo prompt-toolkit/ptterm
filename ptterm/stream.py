@@ -16,9 +16,9 @@ class BetterStream(Stream):
     escape = Stream.escape.copy()
     escape.update(
         {
-            # Call next_line instead of line_feed. We always want to go to the left
-            # margin if we receive this, unlike \n, which goes one row down.
-            # (Except when LNM has been set.)
+            # Call next_line instead of line_feed. We always want to go
+            # to the left margin if we receive this, unlike \n, which goes
+            # one row down. (Except when LNM has been set.)
             NEL: "next_line",
         }
     )
@@ -38,5 +38,6 @@ class BetterStream(Stream):
             for name in d.values():
                 assert hasattr(self.listener, name), "Screen is missing %r" % name
 
-        for d in ("define_charset", "set_icon_name", "set_title", "draw", "debug"):
+        opts = ("define_charset", "set_icon_name", "set_title", "draw", "debug")
+        for d in opts:
             assert hasattr(self.listener, name), "Screen is missing %r" % name

@@ -17,7 +17,7 @@ script:
   - echo "$TRAVIS_PYTHON_VERSION"
   # Setting --max-line-length 88 to set as
   # the default value of black
-  - flake8 --max-line-length 88 i--ignore E203,W503 ptterm
+  - flake8 --max-line-length 88 --ignore E203,W503 ptterm
   # Check wheather the imports were sorted correctly.
   # When this fails, please run ./tools/sort-imports.sh
   # Removing -rc as is not more needed in new isort releases.

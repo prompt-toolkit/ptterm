@@ -224,8 +224,7 @@ class _TerminalControl(UIControl):
 
 
 class _Window(Window):
-    """
-    """
+    """"""
 
     def __init__(self, terminal_control: _TerminalControl, **kw) -> None:
         self.terminal_control = terminal_control
@@ -284,7 +283,9 @@ class Terminal:
             backend = create_backend(command, before_exec_func)
 
         self.terminal_control = _TerminalControl(
-            backend=backend, bell_func=bell_func, done_callback=done_callback,
+            backend=backend,
+            bell_func=bell_func,
+            done_callback=done_callback,
         )
 
         self.terminal_window = _Window(

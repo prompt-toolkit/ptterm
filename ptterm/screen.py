@@ -201,8 +201,8 @@ class BetterScreen:
         self._original_screen: Optional[Screen] = None
 
     def _reset_screen(self) -> None:
-        """ Reset the Screen content. (also called when switching from/to
-        alternate buffer. """
+        """Reset the Screen content. (also called when switching from/to
+        alternate buffer."""
         self.pt_screen = Screen(
             default_char=Char(" ", "")
         )  # TODO: Stop using this Screen class!
@@ -576,8 +576,8 @@ class BetterScreen:
             self.carriage_return()
 
     def next_line(self) -> None:
-        """ When `EscE` has been received. Go to the next line, even when LNM has
-        not been set. """
+        """When `EscE` has been received. Go to the next line, even when LNM has
+        not been set."""
         self.index()
         self.carriage_return()
         self.ensure_bounds()

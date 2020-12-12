@@ -15,10 +15,16 @@ from ptterm.backends.asyncssh import AsyncSSHBackend
 
 
 async def main():
-    style = Style([("title", "bg:#000044 #ffffff underline"),])
+    style = Style(
+        [
+            ("title", "bg:#000044 #ffffff underline"),
+        ]
+    )
 
     async with asyncssh.connect(
-        "localhost", port=2222, username="jonathan",
+        "localhost",
+        port=2222,
+        username="jonathan",
     ) as client_connection:
         backend = AsyncSSHBackend(client_connection)
 
@@ -31,7 +37,11 @@ async def main():
         def done():
             get_app().exit()
 
-        term = Terminal(backend=backend, style="class:terminal", done_callback=done,)
+        term = Terminal(
+            backend=backend,
+            style="class:terminal",
+            done_callback=done,
+        )
 
         application = Application(
             layout=Layout(

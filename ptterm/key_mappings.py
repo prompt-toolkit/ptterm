@@ -42,11 +42,19 @@ def pymux_key_to_prompt_toolkit_key_sequence(key: str) -> Tuple[str, ...]:
 # Create a mapping from prompt_toolkit keys to their ANSI sequences.
 # TODO: This is not completely correct yet. It doesn't take
 #       cursor/application mode into account. Create new tables for this.
-_PROMPT_TOOLKIT_KEY_TO_VT100: Dict[str, str] = {
-    key: vt100_data
-    for vt100_data, key in ANSI_SEQUENCES.items()
-    if not isinstance(key, tuple)
-}
+def _keys_to_data() -> Dict[Keys, str]:
+    result = {}
+    for vt100_data, key in ANSI_SEQUENCES.items():
+        if not isinstance(key, tuple):
+            if key not in result:
+                # Only add key/data pair if it's not already here.
+                # (The first sequence gets priority, otherwise c-m will always
+                # resolve to "\x1b[27;6;13~" for instance, rather than "\r".)
+                result[key] = vt100_data
+    return result
+
+
+_PROMPT_TOOLKIT_KEY_TO_VT100 = _keys_to_data()
 
 
 def prompt_toolkit_key_to_vt100_key(key: str, application_mode: bool = False) -> str:

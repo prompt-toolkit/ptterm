@@ -86,7 +86,8 @@ class PosixBackend(Backend):
             try:
                 os.write(self.master, data)
             except OSError as e:
-                # This happens when the window resizes and a SIGWINCH was received.
+                # This happens when the window resizes
+                # and a SIGWINCH was received.
                 # We get 'Error: [Errno 4] Interrupted system call'
                 if e.errno == 4:
                     continue

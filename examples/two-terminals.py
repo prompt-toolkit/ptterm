@@ -66,7 +66,13 @@ def main():
                             )
                         ),
                     ),
-                    VSplit([term1, Window(style="bg:#aaaaff", width=1), term2,]),
+                    VSplit(
+                        [
+                            term1,
+                            Window(style="bg:#aaaaff", width=1),
+                            term2,
+                        ]
+                    ),
                 ]
             ),
             focused_element=term1,

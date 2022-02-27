@@ -118,9 +118,9 @@ class _TerminalControl(UIControl):
                 return [(cell.style, cell.char) for cell in cells]
 
         if data_buffer:
-            line_count = (
-                max(data_buffer) + 1
-            )  # TODO: substract all empty lines from the beginning. (If we need to. Not sure.)
+            # TODO: substract all empty lines from the beginning.
+            # (If we need to. Not sure.)
+            line_count = max(data_buffer) + 1
         else:
             line_count = 1
 
@@ -224,8 +224,7 @@ class _TerminalControl(UIControl):
 
 
 class _Window(Window):
-    """
-    """
+    """"""
 
     def __init__(self, terminal_control: _TerminalControl, **kw) -> None:
         self.terminal_control = terminal_control
@@ -245,14 +244,16 @@ class _Window(Window):
 def create_backend(
     command: List[str], before_exec_func: Optional[Callable[[], None]]
 ) -> Backend:
+    res = None
     if is_windows():
         from .backends.win32 import Win32Backend
 
-        return Win32Backend()
+        res = Win32Backend()
     else:
         from .backends.posix import PosixBackend
 
-        return PosixBackend.from_command(command, before_exec_func=before_exec_func)
+        res = PosixBackend.from_command(command, before_exec_func=before_exec_func)
+    return res
 
 
 class Terminal:
@@ -282,7 +283,9 @@ class Terminal:
             backend = create_backend(command, before_exec_func)
 
         self.terminal_control = _TerminalControl(
-            backend=backend, bell_func=bell_func, done_callback=done_callback,
+            backend=backend,
+            bell_func=bell_func,
+            done_callback=done_callback,
         )
 
         self.terminal_window = _Window(
@@ -324,7 +327,8 @@ class Terminal:
                 HighlightSearchProcessor(),
                 HighlightIncrementalSearchProcessor(),
             ],
-            preview_search=True,  # XXX: not sure why we need twice preview_search.
+            # XXX: not sure why we need twice preview_search.
+            preview_search=True,
             key_bindings=kb,
         )
 
@@ -341,9 +345,10 @@ class Terminal:
                 [
                     # Either show terminal window or copy buffer.
                     VSplit(
-                        [  # XXX: this nested VSplit should not have been necessary,
-                            # but the ConditionalContainer which width can become
-                            # zero will collapse the other elements.
+                        [  # XXX: this nested VSplit should not have been
+                            # necessary, but the ConditionalContainer which
+                            # width can become zero will collapse the other
+                            # elements.
                             ConditionalContainer(
                                 self.terminal_window, filter=~is_copying
                             ),
@@ -389,10 +394,11 @@ class Terminal:
 
     def enter_copy_mode(self) -> None:
         # Suspend process.
-        self.terminal_control.process.suspend()
+        tcproc = self.terminal_control.process
+        tcproc.suspend()
 
         # Copy content into copy buffer.
-        data_buffer = self.terminal_control.process.screen.pt_screen.data_buffer
+        data_buffer = tcproc.screen.pt_screen.data_buffer
 
         text = []
         styled_lines = []

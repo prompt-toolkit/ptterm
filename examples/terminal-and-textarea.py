@@ -11,7 +11,10 @@ from ptterm import Terminal
 
 def main():
     style = Style(
-        [("terminal focused", "bg:#aaaaaa"), ("title", "bg:#000044 #ffffff underline"),]
+        [
+            ("terminal focused", "bg:#aaaaaa"),
+            ("title", "bg:#000044 #ffffff underline"),
+        ]
     )
 
     term1 = Terminal()
@@ -50,13 +53,24 @@ def main():
                             " Press Control-W to switch focus."
                         ),
                     ),
-                    VSplit([term1, Window(style="bg:#aaaaff", width=1), text_area,]),
+                    VSplit(
+                        [
+                            term1,
+                            Window(style="bg:#aaaaff", width=1),
+                            text_area,
+                        ]
+                    ),
                 ]
             ),
             focused_element=term1,
         ),
         style=style,
-        key_bindings=merge_key_bindings([load_key_bindings(), kb,]),
+        key_bindings=merge_key_bindings(
+            [
+                load_key_bindings(),
+                kb,
+            ]
+        ),
         full_screen=True,
         mouse_support=True,
     )

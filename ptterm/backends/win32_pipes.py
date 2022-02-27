@@ -4,20 +4,7 @@ loop.
 """
 import ctypes
 from asyncio import Event, Future, ensure_future, get_event_loop
-from ctypes import (
-    POINTER,
-    Structure,
-    Union,
-    byref,
-    c_char_p,
-    c_int,
-    c_long,
-    c_ulong,
-    c_void_p,
-    pointer,
-    py_object,
-    windll,
-)
+from ctypes import POINTER, Structure, Union, c_void_p, py_object, windll
 from ctypes.wintypes import BOOL, DWORD, HANDLE, ULONG
 
 __all__ = [
@@ -32,6 +19,7 @@ OPEN_EXISTING = 3
 FILE_FLAG_OVERLAPPED = 0x40000000
 ERROR_IO_PENDING = 997
 ERROR_BROKEN_PIPE = 109
+FALSE = 0
 
 
 class _US(Structure):
@@ -193,5 +181,16 @@ class PipeWriter:
             ctypes.byref(c_written),
             None,
         )
-
-        # TODO: check 'written'.
+        if success == FALSE:
+            error_code = windll.kernel32.GetLastError()
+            raise Exception(
+                "Error writen to file handle=%s error_code=%r" % str(self.handle),
+                error_code,
+            )
+        # DONE: check 'written'.
+        if len(data) != c_written:
+            error_code = windll.kernel32.GetLastError()
+            raise Exception(
+                "Error writen to file handle=%s error_code=%r" % str(self.handle),
+                error_code,
+            )

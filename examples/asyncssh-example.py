@@ -22,7 +22,9 @@ async def main():
     )
 
     async with asyncssh.connect(
-        "localhost", port=2222, username="jonathan",
+        "localhost",
+        port=2222,
+        username="jonathan",
     ) as client_connection:
         backend = AsyncSSHBackend(client_connection)
 

@@ -3,7 +3,6 @@ Abstractions on top of Win32 pipes for integration in the prompt_toolkit event
 loop.
 """
 import ctypes
-import io
 from asyncio import Event, Future, ensure_future, get_event_loop
 from ctypes import (
     POINTER,
@@ -95,9 +94,7 @@ class PipeReader:
         self._overlapped.hEvent = self._event
 
         self._win32_handles = _Win32Handles()
-
-        self._pending = io.StringIO()
-        self._stop = True
+        self._reading = Event()
 
         # Start reader coroutine.
         ensure_future(self._async_reader())
@@ -122,6 +119,9 @@ class PipeReader:
         buffer = ctypes.create_string_buffer(buffer_size + 1)
 
         while True:
+            # Wait until `start_reading` is called.
+            await self._reading.wait()
+
             # Call read.
             success = windll.kernel32.ReadFile(
                 self.handle,
@@ -133,7 +133,7 @@ class PipeReader:
 
             if success:
                 buffer[c_read.value] = b"\0"
-                self.on_read(buffer.value)
+                self.read_callback(buffer.value.decode("utf-8", "ignore"))
 
             else:
                 error_code = windll.kernel32.GetLastError()
@@ -152,7 +152,7 @@ class PipeReader:
 
                     if success:
                         buffer[c_read.value] = b"\0"
-                        self.on_read(buffer.value)
+                        self.read_callback(buffer.value.decode("utf-8", "ignore"))
 
                 elif error_code == ERROR_BROKEN_PIPE:
                     self.stop_reading()
@@ -161,23 +161,10 @@ class PipeReader:
                     return
 
     def start_reading(self):
-        if self._stop:
-            text = self._pending.getvalue()
-            if text:
-                self.read_callback(text)
-                # clear
-                self._pending.read()
-        self._stop = False
+        self._reading.set()
 
     def stop_reading(self):
-        self._stop = True
-
-    def on_read(self, value):
-        text = value.decode("utf-8", "ignore")
-        if self._stop:
-            self._pending.write(text)
-        else:
-            self.read_callback(text)
+        self._reading.clear()
 
 
 class PipeWriter:

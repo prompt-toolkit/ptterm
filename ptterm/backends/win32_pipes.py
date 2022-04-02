@@ -102,7 +102,7 @@ class PipeReader:
         # Start reader coroutine.
         ensure_future(self._async_reader())
 
-    async def _wait_for_event(self):
+    def _wait_for_event(self):
         """
         Wraps a win32 event into a `Future` and wait for it.
         """
@@ -114,7 +114,7 @@ class PipeReader:
 
         self._win32_handles.add_win32_handle(self._event, ready)
 
-        return await f
+        return f
 
     async def _async_reader(self):
         buffer_size = 65536

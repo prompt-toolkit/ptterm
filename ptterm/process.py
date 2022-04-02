@@ -151,9 +151,8 @@ class Process:
                 # that we will process max 1k/1s in case of saturation.
                 # That should be enough to prevent the UI from feeling
                 # unresponsive.
-                timestamp = time.time() + 1
 
-                call_soon_threadsafe(do_asap, max_postpone_time=timestamp)
+                self.loop.call_later(1, do_asap)
         else:
             # End of stream. Remove child.
             self.backend.disconnect_reader()

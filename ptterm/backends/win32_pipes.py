@@ -3,6 +3,7 @@ Abstractions on top of Win32 pipes for integration in the prompt_toolkit event
 loop.
 """
 import ctypes
+import io
 from asyncio import Event, Future, ensure_future, get_event_loop
 from ctypes import (
     POINTER,
@@ -19,6 +20,7 @@ from ctypes import (
     windll,
 )
 from ctypes.wintypes import BOOL, DWORD, HANDLE, ULONG
+from prompt_toolkit.input.win32 import _Win32Handles
 
 __all__ = [
     "PipeReader",
@@ -84,32 +86,35 @@ class PipeReader:
 
         # Create overlapped structure and event.
         self._overlapped = OVERLAPPED()
-        self._event = windll.kernel32.CreateEventA(
+        self._event = HANDLE(windll.kernel32.CreateEventA(
             None,  # Default security attributes.
             BOOL(True),  # Manual reset event.
             BOOL(True),  # initial state = signaled.
             None,  # Unnamed event object.
-        )
+        ))
         self._overlapped.hEvent = self._event
 
-        self._reading = Event()
+        self._win32_handles = _Win32Handles()
+
+        self._pending = io.StringIO()
+        self._stop = True
 
         # Start reader coroutine.
         ensure_future(self._async_reader())
 
-    def _wait_for_event(self):
+    async def _wait_for_event(self):
         """
         Wraps a win32 event into a `Future` and wait for it.
         """
         f = Future()
 
         def ready() -> None:
-            get_event_loop().remove_win32_handle(self._event)
+            self._win32_handles.remove_win32_handle(self._event)
             f.set_result(None)
 
-        get_event_loop().add_win32_handle(self._event, ready)
+        self._win32_handles.add_win32_handle(self._event, ready)
 
-        return f
+        return await f
 
     async def _async_reader(self):
         buffer_size = 65536
@@ -117,9 +122,6 @@ class PipeReader:
         buffer = ctypes.create_string_buffer(buffer_size + 1)
 
         while True:
-            # Wait until `start_reading` is called.
-            await self._reading.wait()
-
             # Call read.
             success = windll.kernel32.ReadFile(
                 self.handle,
@@ -131,7 +133,7 @@ class PipeReader:
 
             if success:
                 buffer[c_read.value] = b"\0"
-                self.read_callback(buffer.value.decode("utf-8", "ignore"))
+                self.on_read(buffer.value)
 
             else:
                 error_code = windll.kernel32.GetLastError()
@@ -150,7 +152,7 @@ class PipeReader:
 
                     if success:
                         buffer[c_read.value] = b"\0"
-                        self.read_callback(buffer.value.decode("utf-8", "ignore"))
+                        self.on_read(buffer.value)
 
                 elif error_code == ERROR_BROKEN_PIPE:
                     self.stop_reading()
@@ -159,10 +161,23 @@ class PipeReader:
                     return
 
     def start_reading(self):
-        self._reading.set()
+        if self._stop:
+            text = self._pending.getvalue()
+            if text:
+                self.read_callback(text)
+                # clear
+                self._pending.read()
+        self._stop = False
 
     def stop_reading(self):
-        self._reading.clear()
+        self._stop = True
+
+    def on_read(self, value):
+        text = value.decode("utf-8", "ignore")
+        if self._stop:
+            self._pending.write(text)
+        else:
+            self.read_callback(text)
 
 
 class PipeWriter:

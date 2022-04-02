@@ -1,6 +1,6 @@
 from yawinpty import Pty, SpawnConfig
 
-from prompt_toolkit.eventloop.future import Future
+from asyncio import Future
 
 from .base import Backend
 from .win32_pipes import PipeReader, PipeWriter

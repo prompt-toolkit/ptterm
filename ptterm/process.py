@@ -1,35 +1,21 @@
 """
 The child process.
 """
-from __future__ import unicode_literals
+import time
+from asyncio import get_event_loop
+from typing import Callable, Optional
 
-from prompt_toolkit.document import Document
-from prompt_toolkit.eventloop import get_event_loop
-from prompt_toolkit.utils import is_windows
-from six.moves import range
-from six import text_type
+from prompt_toolkit.eventloop import call_soon_threadsafe
 
+from .backends import Backend
 from .key_mappings import prompt_toolkit_key_to_vt100_key
 from .screen import BetterScreen
 from .stream import BetterStream
 
-import os
-import time
-
-__all__ = (
-    'Process',
-)
-
-def create_terminal(command, before_exec_func):
-    if is_windows():
-        from .backends.win32 import Win32Terminal
-        return Win32Terminal()
-    else:
-        from .backends.posix import PosixTerminal
-        return PosixTerminal.from_command(command, before_exec_func=before_exec_func)
+__all__ = ["Process"]
 
 
-class Process(object):
+class Process:
     """
     Child process.
     Functionality for parsing the vt100 output (the Pyte screen and stream), as
@@ -43,25 +29,23 @@ class Process(object):
     :param invalidate: When the screen content changes, and the renderer needs
         to redraw the output, this callback is called.
     :param bell_func: Called when the process does a `bell`.
-    :param commmand: List of command line arguments.
-        For instance: `['python', '-c', 'print("test")']`
-    :param before_exec_func: Function which is called in the child process,
-        right before calling `exec`. Useful for instance for changing the
-        current working directory or setting environment variables.
     :param done_callback: Called when the process terminates.
     :param has_priority: Callable that returns True when this Process should
         get priority in the event loop. (When this pane has the focus.)
         Otherwise output can be delayed.
     """
-    def __init__(self, invalidate, command=None, before_exec_func=None,
-                 bell_func=None, done_callback=None, has_priority=None):
-        assert callable(invalidate)
-        assert bell_func is None or callable(bell_func)
-        assert done_callback is None or callable(done_callback)
-        assert has_priority is None or callable(has_priority)
 
+    def __init__(
+        self,
+        invalidate: Callable[[], None],
+        backend: Backend,
+        bell_func: Optional[Callable[[], None]] = None,
+        done_callback: Optional[Callable[[], None]] = None,
+        has_priority: Optional[Callable[[], bool]] = None,
+    ) -> None:
         self.loop = get_event_loop()
         self.invalidate = invalidate
+        self.backend = backend
         self.done_callback = done_callback
         self.has_priority = has_priority or (lambda: True)
 
@@ -69,40 +53,36 @@ class Process(object):
         self._reader_connected = False
 
         # Create terminal interface.
-        self.terminal = create_terminal(command, before_exec_func=before_exec_func)
-        self.terminal.add_input_ready_callback(self._read)
+        self.backend.add_input_ready_callback(self._read)
 
         if done_callback is not None:
-            self.terminal.ready_f.add_done_callback(lambda _: done_callback())
+            self.backend.ready_f.add_done_callback(lambda _: done_callback())
 
         # Create output stream and attach to screen
         self.sx = 0
         self.sy = 0
 
-        self.screen = BetterScreen(self.sx, self.sy,
-                                   write_process_input=self.write_input,
-                                   bell_func=bell_func)
+        self.screen = BetterScreen(
+            self.sx, self.sy, write_process_input=self.write_input, bell_func=bell_func
+        )
 
         self.stream = BetterStream(self.screen)
         self.stream.attach(self.screen)
 
-    def start(self):
+    def start(self) -> None:
         """
         Start the process: fork child.
         """
         self.set_size(120, 24)
-        self.terminal.start()
-        self.terminal.connect_reader()
+        self.backend.start()
+        self.backend.connect_reader()
 
-    def set_size(self, width, height):
+    def set_size(self, width: int, height: int) -> None:
         """
         Set terminal size.
         """
-        assert isinstance(width, int)
-        assert isinstance(height, int)
-
         if (self.sx, self.sy) != (width, height):
-            self.terminal.set_size(width, height)
+            self.backend.set_size(width, height)
         self.screen.resize(lines=height, columns=width)
 
         self.screen.lines = height
@@ -111,7 +91,7 @@ class Process(object):
         self.sx = width
         self.sy = height
 
-    def write_input(self, data, paste=False):
+    def write_input(self, data: str, paste: bool = False) -> None:
         """
         Write user key strokes to the input.
 
@@ -121,29 +101,31 @@ class Process(object):
         """
         # send as bracketed paste?
         if paste and self.screen.bracketed_paste_enabled:
-            data = '\x1b[200~' + data + '\x1b[201~'
+            data = "\x1b[200~" + data + "\x1b[201~"
 
-        self.terminal.write_text(data)
+        self.backend.write_text(data)
 
-    def write_key(self, key):
+    def write_key(self, key: str) -> None:
         """
         Write prompt_toolkit Key.
         """
         data = prompt_toolkit_key_to_vt100_key(
-            key, application_mode=self.screen.in_application_mode)
+            key, application_mode=self.screen.in_application_mode
+        )
         self.write_input(data)
 
-    def _read(self):
+    def _read(self) -> None:
         """
         Read callback, called by the loop.
         """
-        d = self.terminal.read_text(4096)
-        assert isinstance(d, text_type), 'got %r' % type(d)
-                # Make sure not to read too much at once. (Otherwise, this
-                # could block the event loop.)
+        d = self.backend.read_text(4096)
+        assert isinstance(d, str), "got %r" % type(d)
+        # Make sure not to read too much at once. (Otherwise, this
+        # could block the event loop.)
 
-        if not self.terminal.closed:
-            def process():
+        if not self.backend.closed:
+
+            def process() -> None:
                 self.stream.feed(d)
                 self.invalidate()
 
@@ -154,13 +136,13 @@ class Process(object):
 
             # Otherwise, postpone processing until we have CPU time available.
             else:
-                self.terminal.disconnect_reader()
+                self.backend.disconnect_reader()
 
                 def do_asap():
-                    " Process output and reconnect to event loop. "
+                    "Process output and reconnect to event loop."
                     process()
                     if not self.suspended:
-                        self.terminal.connect_reader()
+                        self.backend.connect_reader()
 
                 # When the event loop is saturated because of CPU, we will
                 # postpone this processing max 'x' seconds.
@@ -171,112 +153,47 @@ class Process(object):
                 # unresponsive.
                 timestamp = time.time() + 1
 
-                self.loop.call_from_executor(
-                    do_asap, _max_postpone_until=timestamp)
+                call_soon_threadsafe(do_asap, max_postpone_time=timestamp)
         else:
             # End of stream. Remove child.
-            self.terminal.disconnect_reader()
+            self.backend.disconnect_reader()
 
-    def suspend(self):
+    def suspend(self) -> None:
         """
         Suspend process. Stop reading stdout. (Called when going into copy mode.)
         """
         if not self.suspended:
             self.suspended = True
-            self.terminal.disconnect_reader()
+            self.backend.disconnect_reader()
 
-    def resume(self):
+    def resume(self) -> None:
         """
         Resume from 'suspend'.
         """
         if self.suspended:
-            self.terminal.connect_reader()
+            self.backend.connect_reader()
             self.suspended = False
 
-    def get_cwd(self):
+    def get_cwd(self) -> str:
         """
         The current working directory for this process. (Or `None` when
         unknown.)
         """
-        return self.terminal.get_cwd()
+        return self.backend.get_cwd()
 
-    def get_name(self):
+    def get_name(self) -> str:
         """
         The name for this process. (Or `None` when unknown.)
         """
         # TODO: Maybe cache for short time.
-        return self.terminal.get_name()
+        return self.backend.get_name()
 
-    def kill(self):
+    def kill(self) -> None:
         """
         Kill process.
         """
-        self.terminal.kill()
+        self.backend.kill()
 
     @property
-    def is_terminated(self):
-        return self.terminal.closed
-
-    def create_copy_document(self):
-        """
-        Create a Document instance and token list that can be used in copy
-        mode.
-        """
-        data_buffer = self.screen.data_buffer
-        text = []
-        token_lists = []
-
-        first_row = min(data_buffer.keys())
-        last_row = max(data_buffer.keys())
-
-        def token_has_no_background(token):
-            try:
-                # Token looks like ('C', color, bgcolor, bold, underline, ...)
-                return token[2] is None
-            except IndexError:
-                return True
-
-        for lineno in range(first_row, last_row + 1):
-            token_list = []
-
-            row = data_buffer[lineno]
-            max_column = max(row.keys()) if row else 0
-
-            # Remove trailing whitespace. (If the background is transparent.)
-            row_data = [row[x] for x in range(0, max_column + 1)]
-
-            while (row_data and row_data[-1].char.isspace() and
-                   token_has_no_background(row_data[-1].token)):
-                row_data.pop()
-
-            # Walk through row.
-            char_iter = iter(range(len(row_data)))
-
-            for x in char_iter:
-                c = row[x]
-                text.append(c.char)
-                token_list.append((c.token, c.char))
-
-                # Skip next cell when this is a double width character.
-                if c.width == 2:
-                    try:
-                        next(char_iter)
-                    except StopIteration:
-                        pass
-
-            token_lists.append(token_list)
-            text.append('\n')
-
-        def get_tokens_for_line(lineno):
-            try:
-                return token_lists[lineno]
-            except IndexError:
-                return []
-
-        # Calculate cursor position.
-        d = Document(text=''.join(text))
-
-        return Document(text=d.text,
-                        cursor_position=d.translate_row_col_to_index(
-                            row=self.screen.pt_screen.cursor_position.y,
-                            col=self.screen.pt_screen.cursor_position.x)), get_tokens_for_line
+    def is_terminated(self) -> bool:
+        return self.backend.closed

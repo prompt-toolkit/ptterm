@@ -1,32 +1,23 @@
-from __future__ import unicode_literals
-
-from prompt_toolkit.eventloop import get_event_loop
 from prompt_toolkit.eventloop.future import Future
-
 from yawinpty import Pty, SpawnConfig
 
-import abc
-import os
-import six
-import time
-
-from .base import Terminal
+from .base import Backend
 from .win32_pipes import PipeReader, PipeWriter
 
 __all__ = [
-    'Win32Terminal',
+    "Win32Backend",
 ]
 
 
-class Win32Terminal(Terminal):
+class Win32Backend(Backend):
     """
     Terminal backend for Windows, on top of winpty.
     """
+
     def __init__(self):
         self.pty = Pty()
         self.ready_f = Future()
         self._input_ready_callbacks = []
-        self.loop = get_event_loop()
 
         # Open input/output pipes.
         def received_data(data):
@@ -37,10 +28,10 @@ class Win32Terminal(Terminal):
         self.stdout_pipe_reader = PipeReader(
             self.pty.conout_name(),
             read_callback=received_data,
-            done_callback=lambda: self.ready_f.set_result(None))
+            done_callback=lambda: self.ready_f.set_result(None),
+        )
 
-        self.stdin_pipe_writer = PipeWriter(
-            self.pty.conin_name())
+        self.stdin_pipe_writer = PipeWriter(self.pty.conin_name())
 
         # Buffer in which we read + reading flag.
         self._buffer = []
@@ -54,13 +45,13 @@ class Win32Terminal(Terminal):
             callback()
 
     def read_text(self, amount):
-        " Read terminal output and return it. "
-        result = ''.join(self._buffer)
+        "Read terminal output and return it."
+        result = "".join(self._buffer)
         self._buffer = []
         return result
 
     def write_text(self, text):
-        " Write text to the stdin of the process. "
+        "Write text to the stdin of the process."
         self.stdin_pipe_writer.write(text)
 
     def connect_reader(self):
@@ -80,26 +71,28 @@ class Win32Terminal(Terminal):
         return self.ready_f.done()
 
     def set_size(self, width, height):
-        " Set terminal size. "
+        "Set terminal size."
         self.pty.set_size(width, height)
 
     def start(self):
         """
         Start the terminal process.
         """
-        self.pty.spawn(SpawnConfig(
-            SpawnConfig.flag.auto_shutdown,
-            cmdline=r'C:\windows\system32\cmd.exe'))
+        self.pty.spawn(
+            SpawnConfig(
+                SpawnConfig.flag.auto_shutdown, cmdline=r"C:\windows\system32\cmd.exe"
+            )
+        )
 
     def kill(self):
-        " Terminate the process. "
+        "Terminate the process."
         self.pty.close()
 
     def get_name(self):
         """
         Return the name for this process, or `None` when unknown.
-        """ 
-        return 'cmd.exe'
+        """
+        return "cmd.exe"
 
     def get_cwd(self):
         return

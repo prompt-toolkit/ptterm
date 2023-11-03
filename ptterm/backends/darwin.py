@@ -1,15 +1,9 @@
 """
 Tools for Darwin. (Mac OS X.)
 """
-from __future__ import unicode_literals
-from ctypes import cdll, pointer, c_uint, c_ubyte, c_ulong
+from ctypes import c_ubyte, c_uint, c_ulong, cdll, pointer
 
-import six
-
-__all__ = [
-    'get_proc_info',
-    'get_proc_name'
-]
+__all__ = ["get_proc_info", "get_proc_name"]
 
 # Current Values as of El Capitan
 
@@ -43,12 +37,12 @@ def _init():
 
     if LIBC is None:
         try:
-            LIBC = cdll.LoadLibrary('libc.dylib')
+            LIBC = cdll.LoadLibrary("libc.dylib")
         except OSError:
             # On OS X El Capitan, the above doesn't work for some reason and we
             # have to explicitely mention the path.
             # See: https://github.com/ffi/ffi/issues/461
-            LIBC = cdll.LoadLibrary('/usr/lib/libc.dylib')
+            LIBC = cdll.LoadLibrary("/usr/lib/libc.dylib")
 
 
 def get_proc_info(pid):
@@ -69,11 +63,10 @@ def get_proc_info(pid):
     # Request the process data.
     reslen = oldlen.value
     old = (c_ubyte * reslen)()
-    oldp = pointer(old)
     r = LIBC.sysctl(mib, len(mib), old, oldlenp, None, 0)
     if r:
         return
-    #assert oldlen.value <= reslen
+    # assert oldlen.value <= reslen
 
     return old[:reslen]
 
@@ -86,8 +79,8 @@ def get_proc_name(pid):
     if not proc_kinfo:
         return
 
-    p_comm_range = proc_kinfo[P_COMM_OFFSET:P_COMM_OFFSET + MAXCOMLEN + 1]
-    p_comm_raw = ''.join(six.unichr(c) for c in p_comm_range)
-    p_comm = p_comm_raw.split('\0', 1)[0]
+    p_comm_range = proc_kinfo[P_COMM_OFFSET : P_COMM_OFFSET + MAXCOMLEN + 1]
+    p_comm_raw = "".join(chr(c) for c in p_comm_range)
+    p_comm = p_comm_raw.split("\0", 1)[0]
 
     return p_comm

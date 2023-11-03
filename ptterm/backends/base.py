@@ -1,18 +1,13 @@
-from __future__ import unicode_literals
 import abc
-import six
+
+__all__ = ["Backend"]
 
 
-__all__ = (
-    'Terminal',
-)
-
-
-@six.add_metaclass(abc.ABCMeta)
-class Terminal(object):
+class Backend(metaclass=abc.ABCMeta):
     """
     Base class for the terminal backend-interface.
     """
+
     def add_input_ready_callback(self, callback):
         """
         Add a new callback to be called for when there's input ready to read.
@@ -70,7 +65,7 @@ class Terminal(object):
     def get_name(self):
         """
         Return the name for this process, or `None` when unknown.
-        """ 
+        """
 
     @abc.abstractmethod
     def get_cwd(self):

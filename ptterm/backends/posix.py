@@ -124,11 +124,11 @@ class PosixBackend(Backend):
             self._waitpid()
 
     def kill(self):
-        " Terminate process. "
+        "Terminate process."
         self.send_signal(signal.SIGKILL)
 
     def send_signal(self, signal):
-        " Send signal to running process. "
+        "Send signal to running process."
         assert isinstance(signal, int), type(signal)
 
         if self.pid and not self.closed:
@@ -138,7 +138,7 @@ class PosixBackend(Backend):
                 pass  # [Errno 3] No such process.
 
     def _in_child(self):
-        " Will be executed in the forked child. "
+        "Will be executed in the forked child."
         os.close(self.master)
 
         # Remove signal handler for SIGWINCH as early as possible.
@@ -186,12 +186,12 @@ class PosixBackend(Backend):
         """
 
         def wait_for_finished():
-            " Wait for PID in executor. "
+            "Wait for PID in executor."
             os.waitpid(self.pid, 0)
             self.loop.call_soon(done)
 
         def done():
-            " PID received. Back in the main thread. "
+            "PID received. Back in the main thread."
             # Close pty and remove reader.
 
             self.disconnect_reader()
@@ -206,7 +206,7 @@ class PosixBackend(Backend):
         self.loop.run_in_executor(None, wait_for_finished)
 
     def get_name(self):
-        " Return the process name. "
+        "Return the process name."
         result = "<unknown>"
 
         # Apparently, on a Linux system (like my Fedora box), I have to call
@@ -244,9 +244,8 @@ if sys.platform in ("linux", "linux2", "cygwin"):
         try:
             with open("/proc/%s/cmdline" % pgrp, "rb") as f:
                 return f.read().decode("utf-8", "ignore").partition("\0")[0]
-        except IOError:
+        except OSError:
             pass
-
 
 elif sys.platform == "darwin":
     from .darwin import get_proc_name
@@ -264,9 +263,8 @@ elif sys.platform == "darwin":
 
         try:
             return get_proc_name(pgrp)
-        except IOError:
+        except OSError:
             pass
-
 
 else:
 

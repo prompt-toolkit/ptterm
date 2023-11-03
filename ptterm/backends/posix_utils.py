@@ -81,7 +81,7 @@ def set_terminal_size(stdout_fileno, rows, cols):
     # Buffer for the C call
     # (The first parameter of 'array.array' needs to be 'str' on both Python 2
     # and Python 3.)
-    buf = array.array(str("h"), [rows, cols, 0, 0])
+    buf = array.array("h", [rows, cols, 0, 0])
 
     # Do: TIOCSWINSZ (Set)
     fcntl.ioctl(stdout_fileno, termios.TIOCSWINSZ, buf)

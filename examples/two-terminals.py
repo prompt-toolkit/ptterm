@@ -6,6 +6,7 @@ from prompt_toolkit.layout import HSplit, Layout, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import D
 from prompt_toolkit.styles import Style
+
 from ptterm import Terminal
 
 
@@ -47,7 +48,7 @@ def main():
         switch_focus()
 
     def switch_focus():
-        " Change focus when Control-W is pressed."
+        "Change focus when Control-W is pressed."
         if application.layout.has_focus(term1):
             application.layout.focus(term2)
         else:
@@ -66,7 +67,13 @@ def main():
                             )
                         ),
                     ),
-                    VSplit([term1, Window(style="bg:#aaaaff", width=1), term2,]),
+                    VSplit(
+                        [
+                            term1,
+                            Window(style="bg:#aaaaff", width=1),
+                            term2,
+                        ]
+                    ),
                 ]
             ),
             focused_element=term1,

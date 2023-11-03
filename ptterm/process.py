@@ -139,7 +139,7 @@ class Process:
                 self.backend.disconnect_reader()
 
                 def do_asap():
-                    " Process output and reconnect to event loop. "
+                    "Process output and reconnect to event loop."
                     process()
                     if not self.suspended:
                         self.backend.connect_reader()

@@ -9,6 +9,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.filters import Condition, has_selection
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding.key_processor import KeyPressEvent
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout.containers import (
     ConditionalContainer,
@@ -40,6 +41,8 @@ from .backends import Backend
 from .process import Process
 
 __all__ = ["Terminal"]
+
+E = KeyPressEvent
 
 
 class _TerminalControl(UIControl):
@@ -186,7 +189,7 @@ class _TerminalControl(UIControl):
                 except KeyError:
                     pass
                 else:
-                    self.process.write_input("\x1b[<%s;%s;%s%s" % (ev, x + 1, y + 1, m))
+                    self.process.write_input(f"\x1b[<{ev};{x + 1};{y + 1}{m}")
 
             elif process.screen.urxvt_mouse_support_enabled:
                 # Urxvt mode.
@@ -200,7 +203,7 @@ class _TerminalControl(UIControl):
                 except KeyError:
                     pass
                 else:
-                    self.process.write_input("\x1b[%s;%s;%sM" % (ev, x + 1, y + 1))
+                    self.process.write_input(f"\x1b[{ev};{x + 1};{y + 1}M")
 
             elif process.screen.mouse_support_enabled:
                 # Fall back to old mode.
@@ -216,7 +219,7 @@ class _TerminalControl(UIControl):
                         pass
                     else:
                         self.process.write_input(
-                            "\x1b[M%s%s%s" % (chr(ev), chr(x + 33), chr(y + 33))
+                            f"\x1b[M{chr(ev)}{chr(x + 33)}{chr(y + 33)}"
                         )
 
     def is_focusable(self) -> bool:
@@ -224,8 +227,7 @@ class _TerminalControl(UIControl):
 
 
 class _Window(Window):
-    """
-    """
+    """ """
 
     def __init__(self, terminal_control: _TerminalControl, **kw) -> None:
         self.terminal_control = terminal_control
@@ -277,12 +279,11 @@ class Terminal:
         height: Optional[int] = None,
         done_callback: Optional[Callable[[], None]] = None,
     ) -> None:
-
         if backend is None:
             backend = create_backend(command, before_exec_func)
 
         self.terminal_control = _TerminalControl(
-            backend=backend, bell_func=bell_func, done_callback=done_callback,
+            backend=backend, bell_func=bell_func, done_callback=done_callback
         )
 
         self.terminal_window = _Window(
@@ -300,12 +301,12 @@ class Terminal:
 
         @kb.add("space")
         def _reset_selection(event):
-            " Reset selection. "
+            "Reset selection."
             event.current_buffer.start_selection()
 
         @kb.add("enter", filter=has_selection)
         def _copy_selection(event):
-            " Copy selection. "
+            "Copy selection."
             data = event.current_buffer.copy_selection()
             event.app.clipboard.set_data(data)
 
@@ -380,10 +381,7 @@ class Terminal:
         """
         render_info = self.copy_window.render_info
         if render_info:
-            return "[%s/%s]" % (
-                render_info.cursor_position.y + 1,
-                render_info.content_height,
-            )
+            return f"[{render_info.cursor_position.y + 1}/{render_info.content_height}]"
         else:
             return "[0/0]"
 

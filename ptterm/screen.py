@@ -10,28 +10,27 @@ Changes compared to the original `Screen` class:
 from collections import defaultdict, namedtuple
 from typing import Callable, Dict, List, Optional, Tuple
 
-from pyte import charsets as cs
-from pyte import modes as mo
-from pyte.screens import Margins
-
 from prompt_toolkit.cache import FastDictCache
 from prompt_toolkit.layout.screen import Char, Screen
 from prompt_toolkit.output.vt100 import BG_ANSI_COLORS, FG_ANSI_COLORS
 from prompt_toolkit.output.vt100 import _256_colors as _256_colors_table
 from prompt_toolkit.styles import Attrs
+from pyte import charsets as cs
+from pyte import modes as mo
+from pyte.screens import Margins
 
 __all__ = ("BetterScreen",)
 
 
 class CursorPosition:
-    " Mutable CursorPosition. "
+    "Mutable CursorPosition."
 
     def __init__(self, x: int = 0, y: int = 0) -> None:
         self.x = x
         self.y = y
 
     def __repr__(self) -> str:
-        return "pymux.CursorPosition(x=%r, y=%r)" % (self.x, self.y)
+        return f"pymux.CursorPosition(x={self.x!r}, y={self.y!r})"
 
 
 class _UnicodeInternDict(Dict[str, str]):
@@ -100,7 +99,7 @@ class BetterScreen:
         write_process_input: Callable[[str], None],
         bell_func: Optional[Callable[[], None]] = None,
         get_history_limit: Optional[Callable[[], int]] = None,
-    ):
+    ) -> None:
         bell_func = bell_func or (lambda: None)
         get_history_limit = get_history_limit or (lambda: 2000)
 
@@ -125,7 +124,7 @@ class BetterScreen:
 
     @property
     def mouse_support_enabled(self) -> bool:
-        " True when mouse support has been enabled by the application. "
+        "True when mouse support has been enabled by the application."
         return (1000 << 5) in self.mode
 
     @property
@@ -134,7 +133,7 @@ class BetterScreen:
 
     @property
     def sgr_mouse_support_enabled(self) -> bool:
-        " Xterm Sgr mouse support. "
+        "Xterm Sgr mouse support."
         return (1006 << 5) in self.mode
 
     @property
@@ -143,7 +142,7 @@ class BetterScreen:
 
     @property
     def has_reverse_video(self) -> bool:
-        " The whole screen is set to reverse video. "
+        "The whole screen is set to reverse video."
         return mo.DECSCNM in self.mode
 
     def reset(self) -> None:
@@ -168,12 +167,10 @@ class BetterScreen:
         self.icon_name = ""
 
         # Reset modes.
-        self.mode = set(
-            [
-                mo.DECAWM,  # Autowrap mode. (default: disabled).
-                mo.DECTCEM,  # Text cursor enable mode. (default enabled).
-            ]
-        )
+        self.mode = {
+            mo.DECAWM,  # Autowrap mode. (default: disabled).
+            mo.DECTCEM,  # Text cursor enable mode. (default enabled).
+        }
 
         # According to VT220 manual and ``linux/drivers/tty/vt.c``
         # the default G0 charset is latin-1, but for reasons unknown
@@ -201,8 +198,8 @@ class BetterScreen:
         self._original_screen: Optional[Screen] = None
 
     def _reset_screen(self) -> None:
-        """ Reset the Screen content. (also called when switching from/to
-        alternate buffer. """
+        """Reset the Screen content. (also called when switching from/to
+        alternate buffer."""
         self.pt_screen = Screen(
             default_char=Char(" ", "")
         )  # TODO: Stop using this Screen class!
@@ -253,7 +250,7 @@ class BetterScreen:
 
     @property
     def line_offset(self) -> int:
-        " Return the index of the first visible line. "
+        "Return the index of the first visible line."
         cpos_y = self.pt_cursor_position.y
 
         # NOTE: the +1 is required because `max_y` starts counting at 0 for the
@@ -350,9 +347,9 @@ class BetterScreen:
         # On "\e[?1049h", enter alternate screen mode. Backup the current state,
         if (1049 << 5) in modes:
             self._original_screen = self.pt_screen
-            self._original_screen_vars = dict(
-                (v, getattr(self, v)) for v in self.swap_variables
-            )
+            self._original_screen_vars = {
+                v: getattr(self, v) for v in self.swap_variables
+            }
             self._reset_screen()
             self._reset_offset_and_margins()
 
@@ -399,11 +396,11 @@ class BetterScreen:
         return bool(self._original_screen)
 
     def shift_in(self) -> None:
-        " Activates ``G0`` character set. "
+        "Activates ``G0`` character set."
         self.charset = 0
 
     def shift_out(self) -> None:
-        " Activates ``G1`` character set. "
+        "Activates ``G1`` character set."
         self.charset = 1
 
     def draw(self, chars: str) -> None:
@@ -495,7 +492,7 @@ class BetterScreen:
         cursor_position.x = cursor_position_x
 
     def carriage_return(self) -> None:
-        " Move the cursor to the beginning of the current line. "
+        "Move the cursor to the beginning of the current line."
         self.pt_cursor_position.x = 0
 
     def index(self) -> None:
@@ -575,8 +572,8 @@ class BetterScreen:
             self.carriage_return()
 
     def next_line(self) -> None:
-        """ When `EscE` has been received. Go to the next line, even when LNM has
-        not been set. """
+        """When `EscE` has been received. Go to the next line, even when LNM has
+        not been set."""
         self.index()
         self.carriage_return()
         self.ensure_bounds()
@@ -786,7 +783,7 @@ class BetterScreen:
         self.ensure_bounds()
 
     def bell(self, *args) -> None:
-        " Bell "
+        "Bell"
         self.bell_func()
 
     def cursor_down(self, count: Optional[int] = None) -> None:
@@ -962,7 +959,7 @@ class BetterScreen:
                 self.erase_in_line(type_of)
 
     def set_tab_stop(self) -> None:
-        " Set a horizontal tab stop at cursor position. "
+        "Set a horizontal tab stop at cursor position."
         self.tabstops.add(self.pt_cursor_position.x)
 
     def clear_tab_stop(self, type_of: Optional[int] = None) -> None:
@@ -1008,17 +1005,17 @@ class BetterScreen:
                 line[x] = Char("E")
 
     # Mapping of the ANSI color codes to their names.
-    _fg_colors = dict((v, "#" + k) for k, v in FG_ANSI_COLORS.items())
-    _bg_colors = dict((v, "#" + k) for k, v in BG_ANSI_COLORS.items())
+    _fg_colors = {v: "#" + k for k, v in FG_ANSI_COLORS.items()}
+    _bg_colors = {v: "#" + k for k, v in BG_ANSI_COLORS.items()}
 
     # Mapping of the escape codes for 256colors to their '#ffffff' value.
     _256_colors = {}
 
     for i, (r, g, b) in enumerate(_256_colors_table.colors):
-        _256_colors[1024 + i] = "#%02x%02x%02x" % (r, g, b)
+        _256_colors[1024 + i] = f"#{r:02x}{g:02x}{b:02x}"
 
     def select_graphic_rendition(self, *attrs_tuple: int) -> None:
-        """ Support 256 colours """
+        """Support 256 colours"""
         replace: Dict[str, object] = {}
 
         if not attrs_tuple:
@@ -1086,7 +1083,7 @@ class BetterScreen:
                 # True colors.
                 if n == 2:
                     try:
-                        color_str = "#%02x%02x%02x" % (
+                        color_str = "#{:02x}{:02x}{:02x}".format(
                             attrs.pop(),
                             attrs.pop(),
                             attrs.pop(),
@@ -1148,10 +1145,10 @@ class BetterScreen:
         pass
 
     def charset_default(self, *a, **kw):
-        " Not implemented. "
+        "Not implemented."
 
     def charset_utf8(self, *a, **kw):
-        " Not implemented. "
+        "Not implemented."
 
     def debug(self, *args, **kwargs):
         pass
@@ -1249,8 +1246,7 @@ class BetterScreen:
         ):
             # FIXME:
             raise Exception(
-                "Reflow failed: %r %r"
-                % (
+                "Reflow failed: {!r} {!r}".format(
                     cursor_character,
                     new_data_buffer[cursor_position.y][cursor_position.x].char,
                 )

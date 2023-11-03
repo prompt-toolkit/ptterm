@@ -8,13 +8,7 @@ from ctypes import (
     POINTER,
     Structure,
     Union,
-    byref,
-    c_char_p,
-    c_int,
-    c_long,
-    c_ulong,
     c_void_p,
-    pointer,
     py_object,
     windll,
 )
@@ -182,11 +176,11 @@ class PipeWriter:
             raise Exception("Invalid stdin handle code=%r" % error_code)
 
     def write(self, text):
-        " Write text to the stdin of the process. "
+        "Write text to the stdin of the process."
         data = text.encode("utf-8")
         c_written = DWORD()
 
-        success = windll.kernel32.WriteFile(
+        windll.kernel32.WriteFile(
             self.handle,
             ctypes.create_string_buffer(data),
             len(data),

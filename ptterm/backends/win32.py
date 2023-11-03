@@ -1,6 +1,5 @@
-from yawinpty import Pty, SpawnConfig
-
 from prompt_toolkit.eventloop.future import Future
+from yawinpty import Pty, SpawnConfig
 
 from .base import Backend
 from .win32_pipes import PipeReader, PipeWriter
@@ -46,13 +45,13 @@ class Win32Backend(Backend):
             callback()
 
     def read_text(self, amount):
-        " Read terminal output and return it. "
+        "Read terminal output and return it."
         result = "".join(self._buffer)
         self._buffer = []
         return result
 
     def write_text(self, text):
-        " Write text to the stdin of the process. "
+        "Write text to the stdin of the process."
         self.stdin_pipe_writer.write(text)
 
     def connect_reader(self):
@@ -72,7 +71,7 @@ class Win32Backend(Backend):
         return self.ready_f.done()
 
     def set_size(self, width, height):
-        " Set terminal size. "
+        "Set terminal size."
         self.pty.set_size(width, height)
 
     def start(self):
@@ -86,7 +85,7 @@ class Win32Backend(Backend):
         )
 
     def kill(self):
-        " Terminate the process. "
+        "Terminate the process."
         self.pty.close()
 
     def get_name(self):

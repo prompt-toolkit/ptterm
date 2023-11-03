@@ -109,18 +109,18 @@ class AsyncSSHBackend(Backend):
             self._channel.change_terminal_size(width, height)
 
     def kill(self) -> None:
-        " Terminate process. "
+        "Terminate process."
         if self._channel:
             # self._channel.kill()
             self._channel.terminate()
 
     def send_signal(self, signal: int) -> None:
-        " Send signal to running process. "
+        "Send signal to running process."
         if self._channel:
             self._channel.send_signal(signal)
 
     def get_name(self) -> str:
-        " Return the process name. "
+        "Return the process name."
         if self._channel:
             command = self._channel.get_command()
             return f"asyncssh: {command}"

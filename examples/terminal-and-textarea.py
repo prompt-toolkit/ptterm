@@ -6,12 +6,16 @@ from prompt_toolkit.layout import HSplit, Layout, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import TextArea
+
 from ptterm import Terminal
 
 
 def main():
     style = Style(
-        [("terminal focused", "bg:#aaaaaa"), ("title", "bg:#000044 #ffffff underline"),]
+        [
+            ("terminal focused", "bg:#aaaaaa"),
+            ("title", "bg:#000044 #ffffff underline"),
+        ]
     )
 
     term1 = Terminal()
@@ -33,7 +37,7 @@ def main():
         event.app.exit()
 
     def switch_focus():
-        " Change focus when Control-W is pressed."
+        "Change focus when Control-W is pressed."
         if application.layout.has_focus(term1):
             application.layout.focus(text_area)
         else:
@@ -50,13 +54,24 @@ def main():
                             " Press Control-W to switch focus."
                         ),
                     ),
-                    VSplit([term1, Window(style="bg:#aaaaff", width=1), text_area,]),
+                    VSplit(
+                        [
+                            term1,
+                            Window(style="bg:#aaaaff", width=1),
+                            text_area,
+                        ]
+                    ),
                 ]
             ),
             focused_element=term1,
         ),
         style=style,
-        key_bindings=merge_key_bindings([load_key_bindings(), kb,]),
+        key_bindings=merge_key_bindings(
+            [
+                load_key_bindings(),
+                kb,
+            ]
+        ),
         full_screen=True,
         mouse_support=True,
     )

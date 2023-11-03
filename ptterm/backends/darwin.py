@@ -63,7 +63,6 @@ def get_proc_info(pid):
     # Request the process data.
     reslen = oldlen.value
     old = (c_ubyte * reslen)()
-    oldp = pointer(old)
     r = LIBC.sysctl(mib, len(mib), old, oldlenp, None, 0)
     if r:
         return

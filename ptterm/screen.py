@@ -1014,7 +1014,7 @@ class BetterScreen:
     for i, (r, g, b) in enumerate(_256_colors_table.colors):
         _256_colors[1024 + i] = f"#{r:02x}{g:02x}{b:02x}"
 
-    def select_graphic_rendition(self, *attrs_tuple: int) -> None:
+    def select_graphic_rendition(self, *attrs_tuple: int, private: bool = False) -> None:
         """Support 256 colours"""
         replace: Dict[str, object] = {}
 

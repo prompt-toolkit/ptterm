@@ -123,7 +123,7 @@ class _TerminalControl(UIControl):
         if data_buffer:
             line_count = (
                 max(data_buffer) + 1
-            )  # TODO: substract all empty lines from the beginning. (If we need to. Not sure.)
+            )  # TODO: subtract all empty lines from the beginning. (If we need to. Not sure.)
         else:
             line_count = 1
 
@@ -261,7 +261,7 @@ class Terminal:
     """
     Terminal widget for use in a prompt_toolkit layout.
 
-    :param commmand: List of command line arguments.
+    :param command: List of command line arguments.
         For instance: `['python', '-c', 'print("test")']`
     :param before_exec_func: Function which is called in the child process,
         right before calling `exec`. Useful for instance for changing the

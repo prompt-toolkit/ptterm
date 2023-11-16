@@ -40,7 +40,7 @@ def _init():
             LIBC = cdll.LoadLibrary("libc.dylib")
         except OSError:
             # On OS X El Capitan, the above doesn't work for some reason and we
-            # have to explicitely mention the path.
+            # have to explicitly mention the path.
             # See: https://github.com/ffi/ffi/issues/461
             LIBC = cdll.LoadLibrary("/usr/lib/libc.dylib")
 
@@ -73,7 +73,7 @@ def get_proc_info(pid):
 
 def get_proc_name(pid):
     """
-    Use sysctl to retrive process name.
+    Use sysctl to retrieve process name.
     """
     proc_kinfo = get_proc_info(pid)
     if not proc_kinfo:
